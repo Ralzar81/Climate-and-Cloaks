@@ -81,19 +81,19 @@ namespace ClimateCloaks
             switch (DaggerfallUnity.Instance.WorldTime.Now.SeasonValue)
                 {
                     case DaggerfallDateTime.Seasons.Summer:
-                        temp = 30;
+                        temp = 0;
                         break;
                     case DaggerfallDateTime.Seasons.Winter:
-                        temp = 20;
+                        temp = 0;
                         break;
                     case DaggerfallDateTime.Seasons.Fall:
-                        temp = 10;
+                        temp = 0;
                         break;
                     case DaggerfallDateTime.Seasons.Spring:
-                        temp = 5;
+                        temp = 0;
                         break;
                     default:
-                        temp = 1;
+                        temp = 0;
                         break;
                 }
             temp = DungeonTemp(temp);
