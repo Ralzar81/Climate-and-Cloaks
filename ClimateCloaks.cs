@@ -25,7 +25,7 @@ namespace ClimateCloaks
         {
             mod = initParams.Mod;
             var go = new GameObject(mod.Title);
-            go.AddComponent<Temperature>();
+            go.AddComponent<ClimateCloaks>();
             EntityEffectBroker.OnNewMagicRound += TemperatureEffects_OnNewMagicRound;
             mod.IsReady = true;
         }
