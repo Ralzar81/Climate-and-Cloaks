@@ -19,7 +19,7 @@ namespace ClimateCloaks
 
         static Mod mod;
         public bool check = false;
-
+        static int counter = 0;
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
         {
@@ -30,7 +30,63 @@ namespace ClimateCloaks
             mod.IsReady = true;
         }
 
+        private static void TemperatureEffects_OnNewMagicRound()
+        {
+            PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+            PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
 
+            int climateTemp = ClimateTemp();
+            int seasonTemp = SeasonTemp();
+            int weatherTemp = WeatherTemp();
+            int nightTemp = NightTemp();
+            int clothingTemp = ClothingTemp();
+            ++counter;
+
+            if (playerEnterExit.IsPlayerInsideDungeon)
+            {
+                climateTemp = DungeonTemp(climateTemp);
+                seasonTemp = DungeonTemp(seasonTemp);
+            }
+
+
+            if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled && !playerEntity.IsResting &&
+                !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease && !playerEnterExit.IsPlayerInsideBuilding)
+            {
+                int currentEndurance = playerEntity.Stats.PermanentEndurance;
+                int currentStrength = playerEntity.Stats.PermanentStrength;
+                int currentIntelligence = playerEntity.Stats.PermanentIntelligence;
+
+                int temperatureEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + clothingTemp;
+                if (temperatureEffect != 0)
+                {
+
+
+                    if (counter > 5)
+                    {
+                        counter = 0;
+                        DaggerfallUI.AddHUDText(TempText(temperatureEffect));
+                    }
+                }
+
+                if (temperatureEffect < 0)
+                {
+                    temperatureEffect *= -1;
+                }
+                if (temperatureEffect >= currentEndurance || temperatureEffect >= currentStrength || temperatureEffect >= currentIntelligence)
+                {
+                    temperatureEffect = Mathf.Min(currentEndurance, currentStrength, currentIntelligence) - 5;
+                }
+                EntityEffectManager playerEffectManager = playerEntity.EntityBehaviour.GetComponent<EntityEffectManager>();
+                int[] statMods = new int[DaggerfallStats.Count];
+                statMods[(int)DFCareer.Stats.Endurance] = -temperatureEffect;
+                statMods[(int)DFCareer.Stats.Strength] = -temperatureEffect;
+                playerEffectManager.MergeDirectStatMods(statMods);
+
+
+
+            }
+        }
 
 
 
@@ -74,31 +130,30 @@ namespace ClimateCloaks
             return temp;
         }
 
-
         static int SeasonTemp()
-            {
+        {
             int temp = 0;
             switch (DaggerfallUnity.Instance.WorldTime.Now.SeasonValue)
-                {
-                    case DaggerfallDateTime.Seasons.Summer:
-                        temp = 0;
-                        break;
-                    case DaggerfallDateTime.Seasons.Winter:
-                        temp = 0;
-                        break;
-                    case DaggerfallDateTime.Seasons.Fall:
-                        temp = 0;
-                        break;
-                    case DaggerfallDateTime.Seasons.Spring:
-                        temp = 0;
-                        break;
-                    default:
-                        temp = 0;
-                        break;
-                }
+            {
+                case DaggerfallDateTime.Seasons.Summer:
+                    temp = 30;
+                    break;
+                case DaggerfallDateTime.Seasons.Winter:
+                    temp = 20;
+                    break;
+                case DaggerfallDateTime.Seasons.Fall:
+                    temp = 10;
+                    break;
+                case DaggerfallDateTime.Seasons.Spring:
+                    temp = 5;
+                    break;
+                default:
+                    temp = 1;
+                    break;
+            }
             temp = DungeonTemp(temp);
             return temp;
-            }
+        }
 
         static int WeatherTemp()
         {
@@ -115,19 +170,19 @@ namespace ClimateCloaks
 
                 if (isRaining)
                 {
-                    temp = -0;
+                    temp = -40;
                 }
                 else if (isOvercast)
                 {
-                    temp = -0;
+                    temp = -40;
                 }
                 else if (isStorming)
                 {
-                    temp = -0;
+                    temp = -5;
                 }
                 else if (isSnowing)
                 {
-                    temp = -0;
+                    temp = -20;
                 }
             }
             return temp;
@@ -227,22 +282,22 @@ namespace ClimateCloaks
                 }
                 else
                 {
-                    tempText = "You feel warm.";
+                    tempText = "You are too warm...";
                 }
             }
             if (temperatureEffect < 0)
             {
                 if (temperatureEffect <= -40)
                 {
-                    tempText = "The weather is freezing.";
+                    tempText = "You are freezing.";
                 }
                 else if (temperatureEffect <= -30)
                 {
-                    tempText = "The weather is unbearably cold.";
+                    tempText = "The weather is cold.";
                 }
                 else
                 {
-                    tempText = "You feel cold...";
+                    tempText = "You are too cold...";
                 }
             }
             return tempText;
@@ -250,61 +305,6 @@ namespace ClimateCloaks
 
 
 
-        private static void TemperatureEffects_OnNewMagicRound()
-        {
-            PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
-            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
-            PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
 
-            int climateTemp = ClimateTemp();
-            int seasonTemp = SeasonTemp();
-            int weatherTemp = WeatherTemp();
-            int nightTemp = NightTemp();
-            int clothingTemp = ClothingTemp();
-
-            if (playerEnterExit.IsPlayerInsideDungeon)
-            {
-                climateTemp = DungeonTemp(climateTemp);
-                seasonTemp = DungeonTemp(seasonTemp);
-            }
-
-
-            if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled && !playerEntity.IsResting &&
-                !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease && !playerEnterExit.IsPlayerInsideBuilding)
-            {
-                int currentEndurance = playerEntity.Stats.PermanentEndurance;
-                int currentStrength = playerEntity.Stats.PermanentStrength;
-                int currentIntelligence = playerEntity.Stats.PermanentIntelligence;
-
-                int temperatureEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + clothingTemp;
-                if (temperatureEffect > 0 || temperatureEffect < 0)
-                {
-                    DaggerfallUI.AddHUDText(TempText(temperatureEffect));
-                }
-
-                if (temperatureEffect < 0)
-                {
-                    temperatureEffect *= -1;
-                }
-                if (temperatureEffect >= currentEndurance || temperatureEffect >= currentStrength || temperatureEffect >= currentIntelligence)
-                {
-                    temperatureEffect = Mathf.Min(currentEndurance, currentStrength, currentIntelligence) - 5;
-                }
-                EntityEffectManager playerEffectManager = playerEntity.EntityBehaviour.GetComponent<EntityEffectManager>();
-                int[] statMods = new int[DaggerfallStats.Count];
-                statMods[(int)DFCareer.Stats.Endurance] = -temperatureEffect;
-                statMods[(int)DFCareer.Stats.Strength] = -temperatureEffect;
-                playerEffectManager.MergeDirectStatMods(statMods);
-
-
-
-            }
-        }
     }
 }
-
-
-
-
-
-
