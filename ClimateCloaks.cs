@@ -10,7 +10,7 @@ using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop.Utility;
 
 
-namespace Temperature
+namespace ClimateCloaks
 {
     public class ClimateCloaks : MonoBehaviour
     {
