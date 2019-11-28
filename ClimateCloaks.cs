@@ -50,8 +50,10 @@ namespace ClimateCloaks
   //          }
 
 
-            if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled && !playerEntity.IsResting &&
-                !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease && !playerEnterExit.IsPlayerInsideBuilding)
+            if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled 
+  //resting should not deactivate mod          && !playerEntity.IsResting 
+  //tedious travel conflict?          && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
+            && !playerEnterExit.IsPlayerInsideBuilding)
             {
                 int currentEndurance = playerEntity.Stats.PermanentEndurance;
                 int currentStrength = playerEntity.Stats.PermanentStrength;
