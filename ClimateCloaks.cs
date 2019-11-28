@@ -4,6 +4,7 @@ using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.MagicAndEffects;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
+using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using UnityEngine;
 using DaggerfallWorkshop;
 using DaggerfallConnect.Arena2;
@@ -20,6 +21,7 @@ namespace ClimateCloaks
         static Mod mod;
         public bool check = false;
         static int counter = 0;
+        static int counterDmg = 0;
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
         {
@@ -42,29 +44,23 @@ namespace ClimateCloaks
             int nightTemp = NightTemp();
             int clothingTemp = ClothingTemp();
             ++counter;
-
-  //remove          if (playerEnterExit.IsPlayerInsideDungeon)
-  //          {
-  //              climateTemp = DungeonTemp(climateTemp);
-  //              seasonTemp = DungeonTemp(seasonTemp);
-  //          }
+            ++counterDmg;
 
 
-            if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled 
-  //resting should not deactivate mod          && !playerEntity.IsResting 
-  //tedious travel conflict?          && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
-            && !playerEnterExit.IsPlayerInsideBuilding)
+
+            if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled
+                //&& !playerEntity.IsResting
+                && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
+                && !playerEnterExit.IsPlayerInsideBuilding)
             {
                 int currentEndurance = playerEntity.Stats.PermanentEndurance;
                 int currentStrength = playerEntity.Stats.PermanentStrength;
-                int currentIntelligence = playerEntity.Stats.PermanentIntelligence;
 
                 int temperatureEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + clothingTemp;
+
                 if (temperatureEffect != 0)
                 {
-
-
-                    if (counter > 5)
+                    if (counter > 20 && !playerEntity.IsResting)
                     {
                         counter = 0;
                         DaggerfallUI.AddHUDText(TempText(temperatureEffect));
@@ -75,16 +71,25 @@ namespace ClimateCloaks
                 {
                     temperatureEffect *= -1;
                 }
-                if (temperatureEffect >= currentEndurance || temperatureEffect >= currentStrength || temperatureEffect >= currentIntelligence)
+                if (temperatureEffect > 5)
                 {
-                    temperatureEffect = Mathf.Min(currentEndurance, currentStrength, currentIntelligence) - 5;
+                    if (temperatureEffect >= currentEndurance || temperatureEffect >= currentStrength)
+                    {
+                        temperatureEffect = Mathf.Min(currentEndurance, currentStrength) - 5;
+                        //if (counterDmg > 10 && !playerEntity.IsResting)
+                        //{
+                        //    counterDmg = 0;
+                        //    string tempDmg = "The temperature is killing you";
+                        //    DaggerfallUI.AddHUDText(tempDmg);
+                        //    GameManager.Instance.PlayerEntity.DecreaseHealth(1);
+                        //}
+                    }
+                    EntityEffectManager playerEffectManager = playerEntity.EntityBehaviour.GetComponent<EntityEffectManager>();
+                    int[] statMods = new int[DaggerfallStats.Count];
+                    statMods[(int)DFCareer.Stats.Endurance] = -temperatureEffect;
+                    statMods[(int)DFCareer.Stats.Strength] = -temperatureEffect;
+                    playerEffectManager.MergeDirectStatMods(statMods);
                 }
-                EntityEffectManager playerEffectManager = playerEntity.EntityBehaviour.GetComponent<EntityEffectManager>();
-                int[] statMods = new int[DaggerfallStats.Count];
-                statMods[(int)DFCareer.Stats.Endurance] = -temperatureEffect;
-                statMods[(int)DFCareer.Stats.Strength] = -temperatureEffect;
-                playerEffectManager.MergeDirectStatMods(statMods);
-
 
 
             }
@@ -101,31 +106,31 @@ namespace ClimateCloaks
             switch (climate)
             {
                 case (int)MapsFile.Climates.Desert2:
-                    temp = 0;
+                    temp = 20;
                     break;
                 case (int)MapsFile.Climates.Desert:
-                    temp = 0;
+                    temp = 15;
                     break;
                 case (int)MapsFile.Climates.Rainforest:
-                    temp = 0;
+                    temp = 10;
                     break;
                 case (int)MapsFile.Climates.Subtropical:
-                    temp = 0;
+                    temp = 10;
                     break;
                 case (int)MapsFile.Climates.Swamp:
-                    temp = 0;
+                    temp = 5;
                     break;
                 case (int)MapsFile.Climates.Woodlands:
-                    temp = 0;
+                    temp = -5;
                     break;
                 case (int)MapsFile.Climates.HauntedWoodlands:
-                    temp = -0;
+                    temp = -10;
                     break;
                 case (int)MapsFile.Climates.MountainWoods:
-                    temp = -0;
+                    temp = -15;
                     break;
                 case (int)MapsFile.Climates.Mountain:
-                    temp = -0;
+                    temp = -20;
                     break;
             }
             temp = DungeonTemp(temp);
@@ -138,19 +143,19 @@ namespace ClimateCloaks
             switch (DaggerfallUnity.Instance.WorldTime.Now.SeasonValue)
             {
                 case DaggerfallDateTime.Seasons.Summer:
-                    temp = 30;
-                    break;
-                case DaggerfallDateTime.Seasons.Winter:
-                    temp = 20;
-                    break;
-                case DaggerfallDateTime.Seasons.Fall:
                     temp = 10;
                     break;
+                case DaggerfallDateTime.Seasons.Winter:
+                    temp = -20;
+                    break;
+                case DaggerfallDateTime.Seasons.Fall:
+                    temp = -5;
+                    break;
                 case DaggerfallDateTime.Seasons.Spring:
-                    temp = 5;
+                    temp = -5;
                     break;
                 default:
-                    temp = 1;
+                    temp = 0;
                     break;
             }
             temp = DungeonTemp(temp);
@@ -160,11 +165,12 @@ namespace ClimateCloaks
         static int WeatherTemp()
         {
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
-
             int temp = 0;
 
             if (!playerEnterExit.IsPlayerInsideDungeon)
             {
+                var cloak1 = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
+                var cloak2 = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
                 bool isRaining = GameManager.Instance.WeatherManager.IsRaining;
                 bool isOvercast = GameManager.Instance.WeatherManager.IsOvercast;
                 bool isStorming = GameManager.Instance.WeatherManager.IsStorming;
@@ -172,19 +178,33 @@ namespace ClimateCloaks
 
                 if (isRaining)
                 {
-                    temp = -40;
+                    if (cloak1 != null || cloak2 != null)
+                    {
+                        temp = -5;
+                    }
+                    else
+                    {
+                        temp = 20;
+                    }
                 }
                 else if (isOvercast)
                 {
-                    temp = -40;
+                    temp = -5;
                 }
                 else if (isStorming)
                 {
-                    temp = -5;
+                    temp = -10;
                 }
                 else if (isSnowing)
                 {
-                    temp = -20;
+                    if (cloak1 != null || cloak2 != null)
+                    {
+                        temp = -10;
+                    }
+                    else
+                    {
+                        temp = -15;
+                    }
                 }
             }
             return temp;
@@ -196,34 +216,30 @@ namespace ClimateCloaks
             var cloak2 = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
             var chest = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
             var legs = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
-            var feet = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
+            //var feet = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
 
             int temp = 0;
 
             if (cloak1 != null)
             {
-                temp += 0;
+                temp += 5;
             }
             if (cloak2 != null)
             {
-                temp += 0;
+                temp += 5;
             }
             if (chest != null)
             {
-                temp += 0;
+                temp += 2;
             }
             if (legs != null)
             {
-                temp += 0;
+                temp += 3;
             }
-            if (feet != null)
-            {
-                temp += 0;
-            }
-            else
-            {
-                temp = 0;
-            }
+            //if (feet != null)
+            //{
+            //    temp += 3;
+            //}
             return temp;
         }
 
@@ -240,10 +256,10 @@ namespace ClimateCloaks
                 switch (climate)
                 {
                     case (int)MapsFile.Climates.Desert2:
-                        temp = -0;
+                        temp = -30;
                         break;
                     case (int)MapsFile.Climates.Desert:
-                        temp = -0;
+                        temp = -25;
                         break;
                     case (int)MapsFile.Climates.Rainforest:
                     case (int)MapsFile.Climates.Subtropical:
@@ -251,8 +267,10 @@ namespace ClimateCloaks
                     case (int)MapsFile.Climates.Woodlands:
                     case (int)MapsFile.Climates.HauntedWoodlands:
                     case (int)MapsFile.Climates.MountainWoods:
+                        temp = 0;
+                        break;
                     case (int)MapsFile.Climates.Mountain:
-                        temp = -0;
+                        temp = -10;
                         break;
                 }
             }
