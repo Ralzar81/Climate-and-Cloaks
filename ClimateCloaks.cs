@@ -43,11 +43,11 @@ namespace ClimateCloaks
             int clothingTemp = ClothingTemp();
             ++counter;
 
-            if (playerEnterExit.IsPlayerInsideDungeon)
-            {
-                climateTemp = DungeonTemp(climateTemp);
-                seasonTemp = DungeonTemp(seasonTemp);
-            }
+  //remove          if (playerEnterExit.IsPlayerInsideDungeon)
+  //          {
+  //              climateTemp = DungeonTemp(climateTemp);
+  //              seasonTemp = DungeonTemp(seasonTemp);
+  //          }
 
 
             if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled && !playerEntity.IsResting &&
