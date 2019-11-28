@@ -76,13 +76,13 @@ namespace ClimateCloaks
                     if (temperatureEffect >= currentEndurance || temperatureEffect >= currentStrength)
                     {
                         temperatureEffect = Mathf.Min(currentEndurance, currentStrength) - 5;
-                        //if (counterDmg > 10 && !playerEntity.IsResting)
-                        //{
-                        //    counterDmg = 0;
-                        //    string tempDmg = "The temperature is killing you";
-                        //    DaggerfallUI.AddHUDText(tempDmg);
-                        //    GameManager.Instance.PlayerEntity.DecreaseHealth(1);
-                        //}
+                        if (counterDmg > 10 && !playerEntity.IsResting)
+                        {
+                            counterDmg = 0;
+                            string tempDmg = "The temperature is killing you";
+                            DaggerfallUI.AddHUDText(tempDmg);
+                            GameManager.Instance.PlayerEntity.DecreaseHealth(5);
+                        }
                     }
                     EntityEffectManager playerEffectManager = playerEntity.EntityBehaviour.GetComponent<EntityEffectManager>();
                     int[] statMods = new int[DaggerfallStats.Count];
