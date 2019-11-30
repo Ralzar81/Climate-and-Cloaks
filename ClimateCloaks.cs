@@ -55,6 +55,8 @@ namespace ClimateCloaks
             {
                 int currentEndurance = playerEntity.Stats.PermanentEndurance;
                 int currentStrength = playerEntity.Stats.PermanentStrength;
+                int currentFatigue = playerEntity.MaxFatigue;
+
 
                 int temperatureEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + clothingTemp;
 
@@ -89,6 +91,9 @@ namespace ClimateCloaks
                     statMods[(int)DFCareer.Stats.Endurance] = -temperatureEffect;
                     statMods[(int)DFCareer.Stats.Strength] = -temperatureEffect;
                     playerEffectManager.MergeDirectStatMods(statMods);
+                    int tempEffectHalf = temperatureEffect / 2;
+                    int fatigueTemp = Mathf.Min(temperatureEffect + tempEffectHalf, currentFatigue-10);
+                    playerEntity.DecreaseFatigue(fatigueTemp, false);
                 }
 
 
