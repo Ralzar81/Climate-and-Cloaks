@@ -124,7 +124,7 @@ namespace ClimateCloaks
 
                 }
                 temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
-                int fatigueTemp = temperatureEffect / 10;
+                int fatigueTemp = Mathf.Min(1, temperatureEffect / 30);
                 playerEntity.DecreaseFatigue(fatigueTemp, true);
             }
         }
