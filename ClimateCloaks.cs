@@ -55,9 +55,8 @@ namespace ClimateCloaks
             int temperatureEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + clothingTemp + raceTemp;
             int armorTemp = ArmorTemp() * Mathf.Max(1, temperatureEffect / 10);
             int maxFatigue = playerEntity.MaxFatigue;
-            temperatureEffect += armorTemp;
-            ++counter;
-            ++counterDmg;
+
+
 
 
             if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled
@@ -65,7 +64,11 @@ namespace ClimateCloaks
                 && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
                 && !playerEnterExit.IsPlayerInsideBuilding)
             {
+                temperatureEffect += armorTemp;
+                temperatureEffect = ResistTemp(temperatureEffect);
 
+                //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());
+                ++counter;
                 if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 5)
                 {
                     counter = 0;
@@ -83,26 +86,18 @@ namespace ClimateCloaks
                         playerEntity.DecreaseHealth(2);
                     }
 
-                    int tenthTempEff = temperatureEffect / 10;
-                    int fatigueTemp = Mathf.Max(0, tenthTempEff, tenthTempEff * -1);
+                    temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
+                    int fatigueTemp = temperatureEffect / 10;
                     if (playerEntity.RaceTemplate.ID == 8)
                     {
                         fatigueTemp = Mathf.Max(0, fatigueTemp - 1) * 2;
                     }
                     playerEntity.DecreaseFatigue(fatigueTemp, true);
+
                 }
-
-
-
-                temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
-
-
-
-
-                
                 if (temperatureEffect > 30)
                 {
-                    if (debuffCounter < 80) {++debuffCounter; ++debuffCounter; ++debuffCounter; }
+                    if (debuffCounter < 80) { debuffCounter += 10; }
                     int countOrTemp = Mathf.Min(temperatureEffect, debuffCounter);
                     int tempAttDebuff = Mathf.Max(0, (countOrTemp - 30));
                     if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff < 50) { tempAttDebuff = 0; }
@@ -123,21 +118,29 @@ namespace ClimateCloaks
                     statMods[(int)DFCareer.Stats.Personality] = -Mathf.Min(tempAttDebuff, currentPer - 5);
                     statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
                     playerEffectManager.MergeDirectStatMods(statMods);
-                }
-                if (temperatureEffect < 30) { debuffCounter = 0; }
 
 
-
-                if (temperatureEffect >= 50)
-                {
-                    int tempDmg = Mathf.Max(0, (temperatureEffect - 50) / 10);
-                    if (tempDmg > 0 && counterDmg > 5 && temperatureEffect > 50)
+                    if (temperatureEffect > 50)
                     {
-                        counterDmg = 0;
-                        DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
-                        playerEntity.DecreaseHealth(tempDmg);
+                        ++counterDmg;
+                        int tempDmg = Mathf.Max(0, (temperatureEffect - 40) / 10);
+                        if (tempDmg > 0 && counterDmg > 5)
+                        {
+                            counterDmg = 0;
+                            DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
+                            playerEntity.DecreaseHealth(tempDmg);
+                        }
                     }
                 }
+                else if (temperatureEffect < 30)
+                {
+                    debuffCounter = 0;
+                }
+
+
+
+                    
+                
             }
         }
 
@@ -146,9 +149,8 @@ namespace ClimateCloaks
 
         static int ClimateTemp()
         {
-            int climate = playerGPS.CurrentClimateIndex;
             int temp = 0;
-            switch (climate)
+            switch (playerGPS.CurrentClimateIndex)
             {
                 case (int)MapsFile.Climates.Desert2:
                     temp = 45;
@@ -207,7 +209,7 @@ namespace ClimateCloaks
         static int WeatherTemp()
         {
             int temp = 0;
-
+            int cloak = 0;
             if (!playerEnterExit.IsPlayerInsideDungeon)
             {
                 var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
@@ -217,36 +219,29 @@ namespace ClimateCloaks
                 bool isStorming = GameManager.Instance.WeatherManager.IsStorming;
                 bool isSnowing = GameManager.Instance.WeatherManager.IsSnowing;
 
+                if (cloak1 != null || cloak2 != null)
+                {
+                    cloak = 10;
+                }
                 if (isRaining)
                 {
-                    if (cloak1 != null || cloak2 != null)
-                    {
-                        temp = -5;
-                    }
-                    else
-                    {
-                        temp = -30;
-                    }
+                    temp = -20 + cloak;
+                }
+                else if (isStorming)
+                {
+                    temp = -25 + cloak;
+                }
+                else if (isSnowing)
+                {
+                    temp = -15 + cloak;
                 }
                 else if (isOvercast)
                 {
                     temp = -5;
                 }
-                else if (isStorming)
-                {
-                    temp = -10;
-                }
-                else if (isSnowing)
-                {
-                    if (cloak1 != null || cloak2 != null)
-                    {
-                        temp = -5;
-                    }
-                    else
-                    {
-                        temp = -20;
-                    }
-                }
+
+
+
             }
             return temp;
         }
@@ -262,14 +257,14 @@ namespace ClimateCloaks
 
             int temp = 0;
 
-            if (cloak1 != null)
-            {
-                temp += 5;
-            }
-            if (cloak2 != null)
-            {
-                temp += 5;
-            }
+            //if (cloak1 != null)
+            //{
+            //    temp += 5;
+            //}
+            //if (cloak2 != null)
+            //{
+            //    temp += 5;
+            //}
             if (chest != null)
             {
                 temp += 15;
@@ -327,27 +322,14 @@ namespace ClimateCloaks
 
         static int RaceTemp()
         {
-            int playerRace = playerEntity.RaceTemplate.ID;
             int temp = 0;
-            //None = -1,
-            //Breton = 1,
-            //Redguard = 2,
-            //Nord = 3,
-            //DarkElf = 4,
-            //HighElf = 5,
-            //WoodElf = 6,
-            //Khajiit = 7,
-            //Argonian = 8,
-            //Vampire = 9,
-            //Werewolf = 10,
-            //Wereboar = 11,
-            switch (playerRace)
+            switch (playerEntity.RaceTemplate.ID)
             {
                 case (int)Races.Breton:
                     temp = +5;
                     break;
                 case (int)Races.Redguard:
-                    temp = -10;
+                    temp = -5;
                     break;
                 case (int)Races.Nord:
                     temp = +10;
@@ -368,7 +350,24 @@ namespace ClimateCloaks
                     temp = -5;
                     break;
             }
+            return temp;
+        }
 
+        static int ResistTemp(int temp)
+        {
+            int resFire = playerEntity.Resistances.PermanentFire / 2;
+            int resFrost = playerEntity.Resistances.PermanentFrost / 2;
+            int raceID = playerEntity.RaceTemplate.ID;
+            if (raceID == 3) { resFrost += 15; }
+
+            if (temp < 0)
+            {
+                temp = Mathf.Min(temp + resFrost, 0);                
+            }
+            else
+            {
+                temp = Mathf.Max(temp - resFire, 0);
+            }
             return temp;
         }
 
@@ -437,7 +436,7 @@ namespace ClimateCloaks
             string tempText = "";
             if (temperatureEffect > 10)
             {
-                if (temperatureEffect >= 50)
+                if (temperatureEffect > 50)
                 {
                     tempText = "You feel like you're burning up!";
                 }
@@ -445,14 +444,14 @@ namespace ClimateCloaks
                 {
                     tempText = "Heat stroke is setting in...";
                 }
-                else if (temperatureEffect < 10)
+                else if (temperatureEffect > 10)
                 {
                     tempText = "It's too hot for you here...";
                 }
             }
             if (temperatureEffect < 10)
             {
-                if (temperatureEffect <= -50)
+                if (temperatureEffect < -50)
                 {
                     tempText = "Your teeth are chattering uncontrollably!";
                 }
