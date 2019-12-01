@@ -65,7 +65,7 @@ namespace ClimateCloaks
                 && !playerEnterExit.IsPlayerInsideBuilding)
             {                
 
-                if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 4 && !playerEntity.IsResting)
+                if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 10 && !playerEntity.IsResting)
                 {
                     counter = 0;
                     DaggerfallUI.AddHUDText(TempText(temperatureEffect));
@@ -81,12 +81,24 @@ namespace ClimateCloaks
                         DaggerfallUI.AddHUDText(tempDmgTxt);
                         playerEntity.DecreaseHealth(2);
                     }
-                }            
+                    temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
+                    if (playerEntity.RaceTemplate.ID == 8)
+                    {
+                        int fatigueTemp = Mathf.Max(0, (temperatureEffect - 30) / 5);
+                        playerEntity.DecreaseFatigue(fatigueTemp, true);
+                    }
+                    else
+                    {
+                        int fatigueTemp = Mathf.Max(0, (temperatureEffect - 10) / 10);
+                        playerEntity.DecreaseFatigue(fatigueTemp, true);
+                    }
+                }
+                
 
                 temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
 
                 int tempDmg = Mathf.Max(0, (temperatureEffect - 60) / 10);
-                if (tempDmg > 0 && counterDmg > 4 && temperatureEffect > 60 && !playerEntity.IsResting)
+                if (tempDmg > 0 && counterDmg > 10 && temperatureEffect > 60 && !playerEntity.IsResting)
                 {
                     counterDmg = 0;
                     DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
@@ -112,14 +124,15 @@ namespace ClimateCloaks
                 statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
                 playerEffectManager.MergeDirectStatMods(statMods);
 
-                if (playerEntity.RaceTemplate.ID == 8)
+                if (playerEntity.RaceTemplate.ID == 8 && !playerEntity.IsResting)
                 {
-                    int fatigueTemp = Mathf.Min(2, (temperatureEffect - 30) / 30);
+                    int fatigueTemp = Mathf.Max(0, (temperatureEffect - 30) / 5);
                     playerEntity.DecreaseFatigue(fatigueTemp, true);
                 }
                 else
                 {
-                    int fatigueTemp = Mathf.Min(1, (temperatureEffect-10) / 30);
+
+                    int fatigueTemp = Mathf.Max(0, (temperatureEffect - 10) / 10);
                     playerEntity.DecreaseFatigue(fatigueTemp, true);
                 }
             }
@@ -248,11 +261,11 @@ namespace ClimateCloaks
 
             if (cloak1 != null)
             {
-                temp += 15;
+                temp += 5;
             }
             if (cloak2 != null)
             {
-                temp += 15;
+                temp += 5;
             }
             if (chest != null)
             {
@@ -362,6 +375,8 @@ namespace ClimateCloaks
             var legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
             var aChest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestArmor);
             var aLegs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsArmor);
+            var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
+            var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
 
 
             if (chest == null && legs == null && aChest == null && aLegs == null && playerEntity.RaceTemplate.ID != 7 && playerEntity.RaceTemplate.ID != 8)
@@ -381,7 +396,7 @@ namespace ClimateCloaks
 
             int temp = 0;
 
-            if (isNight || !playerEnterExit.IsPlayerInsideDungeon)
+            if (isNight && !playerEnterExit.IsPlayerInsideDungeon)
             {
                 switch (climate)
                 {
