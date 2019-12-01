@@ -4,12 +4,10 @@ using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.MagicAndEffects;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
-using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using UnityEngine;
 using DaggerfallWorkshop;
 using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop.Utility;
-using System.Collections;
 
 
 namespace ClimateCloaks
@@ -67,65 +65,63 @@ namespace ClimateCloaks
                 && !playerEnterExit.IsPlayerInsideBuilding)
             {                
 
-                if (temperatureEffect > 10 || temperatureEffect < 10)
+                if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 4 && !playerEntity.IsResting)
                 {
-                    if (counter > 2 && !playerEntity.IsResting)
+                    counter = 0;
+                    DaggerfallUI.AddHUDText(TempText(temperatureEffect));
+                    if (temperatureEffect > 30 && naked == true && nightTemp == 0)
                     {
-                        counter = 0;
-                        DaggerfallUI.AddHUDText(TempText(temperatureEffect));
-                        if (temperatureEffect > 30 && naked == true)
-                        {
-                            string tempDmgTxt = "The sun burns your naked skin.";
-                            DaggerfallUI.AddHUDText(tempDmgTxt);
-                            playerEntity.DecreaseHealth(2);
-                        }
-                        else if (temperatureEffect < 20 && naked == true)
-                            {
-                                string tempDmgTxt = "The icy air numbs your naked skin";
-                                DaggerfallUI.AddHUDText(tempDmgTxt);
-                                playerEntity.DecreaseHealth(2);
-                            }
+                        string tempDmgTxt = "The sun burns your naked skin.";
+                        DaggerfallUI.AddHUDText(tempDmgTxt);
+                        playerEntity.DecreaseHealth(2);
                     }
-
-                    temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
-
-                    int tempAttDebuff = Mathf.Max(0, (temperatureEffect - 30) / 2);
-                    if (playerEntity.RaceTemplate.ID == 8) { tempAttDebuff = Mathf.Max(0, (temperatureEffect - 50)); }                    
-                    int currentEn = playerEntity.Stats.PermanentEndurance;
-                    int currentSt = playerEntity.Stats.PermanentStrength;
-                    int currentAg = playerEntity.Stats.PermanentAgility;
-                    int currentInt = playerEntity.Stats.PermanentIntelligence;
-                    int currentWill = playerEntity.Stats.PermanentWillpower;
-                    int currentPer = playerEntity.Stats.PermanentPersonality;
-                    int currentSpd = playerEntity.Stats.PermanentSpeed;
-                    int[] statMods = new int[DaggerfallStats.Count];
-                    statMods[(int)DFCareer.Stats.Endurance] = -Mathf.Min(tempAttDebuff, currentEn - 5);
-                    statMods[(int)DFCareer.Stats.Strength] = -Mathf.Min(tempAttDebuff, currentSt - 5);
-                    statMods[(int)DFCareer.Stats.Agility] = -Mathf.Min(tempAttDebuff, currentAg - 5);
-                    statMods[(int)DFCareer.Stats.Intelligence] = -Mathf.Min(tempAttDebuff, currentInt - 5);
-                    statMods[(int)DFCareer.Stats.Willpower] = -Mathf.Min(tempAttDebuff, currentWill - 5);
-                    statMods[(int)DFCareer.Stats.Personality] = -Mathf.Min(tempAttDebuff, currentPer - 5);
-                    statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
-                    playerEffectManager.MergeDirectStatMods(statMods);
-
-
-                    if (counterDmg > 2 && temperatureEffect > 60 && !playerEntity.IsResting)
+                    else if (temperatureEffect < 20 && naked == true)
                     {
-                        counterDmg = 0;
-                        string tempDmgTxt = "You cannot go on much longer in this weather...";
-                        int tempDmg = Mathf.Max(0, (temperatureEffect -60) / 10);
-
-                        if (tempDmg > 0)
-                        {
-                            DaggerfallUI.AddHUDText(tempDmgTxt);
-                            playerEntity.DecreaseHealth(tempDmg);
-                        }
+                        string tempDmgTxt = "The icy air numbs your naked skin";
+                        DaggerfallUI.AddHUDText(tempDmgTxt);
+                        playerEntity.DecreaseHealth(2);
                     }
+                }            
 
-                }
                 temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
-                int fatigueTemp = Mathf.Min(1, temperatureEffect / 30);
-                playerEntity.DecreaseFatigue(fatigueTemp, true);
+
+                int tempDmg = Mathf.Max(0, (temperatureEffect - 60) / 10);
+                if (tempDmg > 0 && counterDmg > 4 && temperatureEffect > 60 && !playerEntity.IsResting)
+                {
+                    counterDmg = 0;
+                    DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
+                    playerEntity.DecreaseHealth(tempDmg);
+                }
+
+                int tempAttDebuff = Mathf.Max(0, (temperatureEffect - 30) / 2);
+                if (playerEntity.RaceTemplate.ID == 8) { tempAttDebuff = Mathf.Max(0, (temperatureEffect - 50)); }
+                int currentEn = playerEntity.Stats.PermanentEndurance;
+                int currentSt = playerEntity.Stats.PermanentStrength;
+                int currentAg = playerEntity.Stats.PermanentAgility;
+                int currentInt = playerEntity.Stats.PermanentIntelligence;
+                int currentWill = playerEntity.Stats.PermanentWillpower;
+                int currentPer = playerEntity.Stats.PermanentPersonality;
+                int currentSpd = playerEntity.Stats.PermanentSpeed;
+                int[] statMods = new int[DaggerfallStats.Count];
+                statMods[(int)DFCareer.Stats.Endurance] = -Mathf.Min(tempAttDebuff, currentEn - 5);
+                statMods[(int)DFCareer.Stats.Strength] = -Mathf.Min(tempAttDebuff, currentSt - 5);
+                statMods[(int)DFCareer.Stats.Agility] = -Mathf.Min(tempAttDebuff, currentAg - 5);
+                statMods[(int)DFCareer.Stats.Intelligence] = -Mathf.Min(tempAttDebuff, currentInt - 5);
+                statMods[(int)DFCareer.Stats.Willpower] = -Mathf.Min(tempAttDebuff, currentWill - 5);
+                statMods[(int)DFCareer.Stats.Personality] = -Mathf.Min(tempAttDebuff, currentPer - 5);
+                statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
+                playerEffectManager.MergeDirectStatMods(statMods);
+
+                if (playerEntity.RaceTemplate.ID == 8)
+                {
+                    int fatigueTemp = Mathf.Min(2, (temperatureEffect - 30) / 30);
+                    playerEntity.DecreaseFatigue(fatigueTemp, true);
+                }
+                else
+                {
+                    int fatigueTemp = Mathf.Min(1, (temperatureEffect-10) / 30);
+                    playerEntity.DecreaseFatigue(fatigueTemp, true);
+                }
             }
         }
 
@@ -385,15 +381,15 @@ namespace ClimateCloaks
 
             int temp = 0;
 
-            if (isNight)
+            if (isNight || !playerEnterExit.IsPlayerInsideDungeon)
             {
                 switch (climate)
                 {
                     case (int)MapsFile.Climates.Desert2:
-                        temp = -30;
+                        temp = -40;
                         break;
                     case (int)MapsFile.Climates.Desert:
-                        temp = -25;
+                        temp = -35;
                         break;
                     case (int)MapsFile.Climates.Rainforest:
                     case (int)MapsFile.Climates.Subtropical:
@@ -401,10 +397,10 @@ namespace ClimateCloaks
                     case (int)MapsFile.Climates.Woodlands:
                     case (int)MapsFile.Climates.HauntedWoodlands:
                     case (int)MapsFile.Climates.MountainWoods:
-                        temp = 0;
+                        temp = -20;
                         break;
                     case (int)MapsFile.Climates.Mountain:
-                        temp = -10;
+                        temp = -30;
                         break;
                 }
             }
