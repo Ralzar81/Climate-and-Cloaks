@@ -52,6 +52,7 @@ namespace ClimateCloaks
             int nightTemp = NightTemp();
             int clothingTemp = ClothingTemp();
             bool naked = NakedSwitch();
+            //bool bareFeet = BareFeet();
             int temperatureEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + clothingTemp + raceTemp;
             int armorTemp = ArmorTemp() * Mathf.Max(1, temperatureEffect / 10);
 //int maxFatigue = playerEntity.MaxFatigue;               Old code, to be removed            
@@ -68,7 +69,15 @@ namespace ClimateCloaks
                 temperatureEffect = ResistTemp(temperatureEffect);
 
 //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());        Ingame display of current temperature for testing                   
-                ++counter;
+                
+// is it possible to just go "if playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null" ?                
+//                if (bareFeet ==  && (true playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8))  Need bool for "walking = true" and "dismounted = true"
+//                {
+//                        string tempDmgTxt = "The rough ground hurts your bare feet.";
+//                        DaggerfallUI.AddHUDText(tempDmgTxt);
+//                        playerEntity.DecreaseHealth(1);                
+//                }
+                ++counter;                
                 if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 5)
                 {
                     counter = 0;
@@ -278,17 +287,17 @@ namespace ClimateCloaks
 
             int temp = 0;
 
-            //if (cloak1 != null)
-            //{
-            //    temp += 5;
-            //}
-            //if (cloak2 != null)
-            //{
-            //    temp += 5;
-            //}
+            if (cloak1 != null)
+            {
+                temp += 5;
+            }
+            if (cloak2 != null)
+            {
+                temp += 5;
+            }
             if (chest != null)
             {
-                temp += 15;
+                temp += 10;
             }
             if (legs != null)
             {
@@ -409,6 +418,20 @@ namespace ClimateCloaks
                 return false;
             }
         }
+// Feet        
+//        static bool BareFeet()
+//        {
+//           var feet = playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
+//
+//            if (feet == null)
+//            {
+//                return true;
+//            }
+//            else
+//            {
+//                return false;
+//            }
+//        }
 
         static int NightTemp()
         {
