@@ -374,10 +374,10 @@ namespace ClimateCloaks
                     temp = 0;
                     break;
                 case (int)Races.Khajiit:
-                    temp = -5;
+                    temp = 0;
                     break;
                 case (int)Races.Argonian:
-                    temp = -5;
+                    temp = -10;
                     break;
             }
             return temp;
