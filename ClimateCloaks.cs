@@ -50,14 +50,18 @@ namespace ClimateCloaks
             int seasonTemp = SeasonTemp();
             int weatherTemp = WeatherTemp();
             int nightTemp = NightTemp();
-            int clothingTemp = ClothingTemp();
+            int clothingTemp = ChestTemp() + FeetTemp();
             bool naked = NakedSwitch();
-            //bool bareFeet = BareFeet();
-            int temperatureEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + clothingTemp + raceTemp;
-            int armorTemp = ArmorTemp() * Mathf.Max(1, temperatureEffect / 10);
-//int maxFatigue = playerEntity.MaxFatigue;               Old code, to be removed            
+            int natTempEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + raceTemp;
+            string skyTemp = SkyTemp(natTempEffect);
+            int armorTemp = ArmorTemp() * Mathf.Max(1, natTempEffect / 10);
 
-
+            if (playerEntity.IsResting && GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease && playerEnterExit.IsPlayerInsideBuilding)
+            {
+                counter = 0;
+                counterDmg = 0;
+                debuffCounter = 0;
+            }
 
 
             if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled
@@ -65,13 +69,24 @@ namespace ClimateCloaks
                 && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
                 && !playerEnterExit.IsPlayerInsideBuilding)
             {
-                temperatureEffect += armorTemp;
-                temperatureEffect = ResistTemp(temperatureEffect);
 
-//DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());        Ingame display of current temperature for testing                   
-                
+                if ((natTempEffect - playerEntity.Stats.PermanentEndurance) > 40 && playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8)
+                && GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot)
+                {
+                    DaggerfallUI.AddHUDText("Your bare feet are hurting.");
+                    playerEntity.DecreaseHealth(1);
+                }
 
-                ++counter;                
+
+                int temperatureEffect = ResistTemp(natTempEffect + armorTemp + clothingTemp);
+                DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());//Shows the current temp ingame for testing purposes.
+
+                if (GameManager.Instance.PlayerMouseLook.Pitch <= -70)
+                {
+                    DaggerfallUI.SetMidScreenText(skyTemp); 
+                }
+
+                ++counter;
                 if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 5)
                 {
                     counter = 0;
@@ -100,17 +115,11 @@ namespace ClimateCloaks
                 }
                 if (temperatureEffect > 30)
                 {
-                    //if (debuffCounter < 80) { debuffCounter += 10; }
-                    //int countOrTemp = Mathf.Min(temperatureEffect, debuffCounter);
-                    //int tempAttDebuff = Mathf.Max(0, (countOrTemp - 30));
-
-                    
                     if (debuffCounter < 80) { debuffCounter++; }
                     int countOrTemp = Mathf.Min(temperatureEffect - 30, debuffCounter);
-                    int tempAttDebuff = Mathf.Max(0, (countOrTemp);
-                    
-                    if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff < 40) { tempAttDebuff = 0; }
-                    if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff > 40) { tempAttDebuff *= 2; }                    
+                    int tempAttDebuff = Mathf.Max(0, countOrTemp);
+                    if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff < 50) { tempAttDebuff = 0; }
+                    if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff > 50) { tempAttDebuff *= 2; }
                     int currentEn = playerEntity.Stats.PermanentEndurance;
                     int currentSt = playerEntity.Stats.PermanentStrength;
                     int currentAg = playerEntity.Stats.PermanentAgility;
@@ -127,14 +136,6 @@ namespace ClimateCloaks
                     statMods[(int)DFCareer.Stats.Personality] = -Mathf.Min(tempAttDebuff, currentPer - 5);
                     statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
                     playerEffectManager.MergeDirectStatMods(statMods);
-                    // is it possible to just go "if playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null" ?                
-//                if (temperatureEffect > 30 && bareFeet == true && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8))  Need bool for "walking = true" and "dismounted = true"
-//                {
-//                        string tempDmgTxt = "The rough ground hurts your bare feet.";
-//                        DaggerfallUI.AddHUDText(tempDmgTxt);
-//                        playerEntity.DecreaseHealth(1);                
-//                }
-
 
                     ++counterDmg;
                     if (temperatureEffect > 50 && counterDmg > 5)
@@ -142,36 +143,14 @@ namespace ClimateCloaks
                         int tempDmg = Mathf.Max(0, (temperatureEffect - 40) / 10);
                         counterDmg = 0;
                         DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
-                        playerEntity.DecreaseHealth(tempDmg);                       
+                        playerEntity.DecreaseHealth(tempDmg);
                     }
-                
 
-
-
-
-
-
-                    //if (temperatureEffect > 50)
-                    //{
-                    //    ++counterDmg;
-                    //    int tempDmg = Mathf.Max(0, (temperatureEffect - 40) / 10);
-                    //    if (tempDmg > 0 && counterDmg > 5)
-                    //    {
-                    //        counterDmg = 0;
-                    //        DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
-                    //        playerEntity.DecreaseHealth(tempDmg);
-                    //    }
-                    //}
                 }
                 else if (temperatureEffect < 30)
                 {
                     debuffCounter = 0;
-                }
-
-
-
-                    
-                
+                }            
             }
         }
 
@@ -277,49 +256,130 @@ namespace ClimateCloaks
             return temp;
         }
 
-        static int ClothingTemp()
+        //static int ClothingTemp()
+        //{
+        //    var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
+        //    var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
+        //    var chest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
+        //    var legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
+        //    var feet = playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
+        //    var gloves = playerEntity.ItemEquipTable.GetItem(EquipSlots.Gloves);
+
+        //    int temp = 0;
+
+        //    if (cloak1 != null)
+        //    {
+        //        temp += 5;
+        //    }
+        //    if (cloak2 != null)
+        //    {
+        //        temp += 5;
+        //    }
+        //    if (chest != null)
+        //    {
+        //        temp += 15;
+        //    }
+        //    if (legs != null)
+        //    {
+        //        temp += 10;
+        //    }
+        //    if (feet != null)
+        //    {
+        //        temp += 3;
+        //    }
+        //    if (gloves != null)
+        //    {
+        //        temp += 2;
+        //    }
+        //    return temp;
+        //}
+
+
+
+
+
+        static int ChestTemp()
         {
-            var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
-            var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
             var chest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
-            var legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
-            var feet = playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
-            var gloves = playerEntity.ItemEquipTable.GetItem(EquipSlots.Gloves);
 
-            int temp = 0;
-
-            if (cloak1 != null)
-            {
-                temp += 5;
-            }
-            if (cloak2 != null)
-            {
-                temp += 5;
-            }
             if (chest != null)
             {
-                temp += 10;
+                switch (playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes).TemplateIndex)
+                {
+                    case (int)MensClothing.Straps:
+                    case (int)MensClothing.Armbands:
+                    case (int)MensClothing.Fancy_Armbands:
+                    case (int)MensClothing.Champion_straps:
+                    case (int)MensClothing.Sash:
+                    case (int)MensClothing.Challenger_Straps:
+                    case (int)MensClothing.Eodoric:
+                        return +0;
+                    case (int)MensClothing.Vest:
+                    case (int)MensClothing.Short_tunic:
+                    case (int)MensClothing.Short_shirt_unchangeable:
+                    case (int)MensClothing.Short_shirt:
+                    case (int)MensClothing.Short_shirt_with_belt:
+                    case (int)MensClothing.Short_shirt_closed_top:
+                    case (int)MensClothing.Short_shirt_closed_top2:
+                        return +5;
+                    case (int)MensClothing.Open_Tunic:
+                    case (int)MensClothing.Toga:
+                        return +8;
+                    case (int)MensClothing.Long_shirt:
+                    case (int)MensClothing.Long_shirt_with_belt:
+                    case (int)MensClothing.Long_shirt_closed_top:
+                    case (int)MensClothing.Long_shirt_closed_top2:
+                    case (int)MensClothing.Long_shirt_unchangeable:
+                        return +10;
+                    case (int)MensClothing.Plain_robes:
+                    case (int)MensClothing.Priest_robes:
+                        return +12;
+                    case (int)MensClothing.Anticlere_Surcoat:
+                    case (int)MensClothing.Formal_tunic:
+                    case (int)MensClothing.Reversible_tunic:
+                    case (int)MensClothing.Kimono:
+                    case (int)MensClothing.Dwynnen_surcoat:
+                        return +15;
+                    default:
+                        return 0;
+
+                }
             }
-            if (legs != null)
-            {
-                temp += 10;
-            }
+            else { return 0; }
+        }
+
+        static int FeetTemp()
+        {
+
+            var feet = playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
+
             if (feet != null)
             {
-                temp += 3;
+                switch (playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet).TemplateIndex)
+                {
+                    case (int)MensClothing.Sandals:
+                        return 0;
+                    case (int)MensClothing.Shoes:
+                        return +2;
+                    case (int)MensClothing.Tall_Boots:
+                    case (int)MensClothing.Boots:
+                        return +5;
+                    default:
+                        return 0;
+                }
             }
-            if (gloves != null)
-            {
-                temp += 2;
-            }
-
-
-
-            return temp;
+            else { return 0; }
         }
+
+
+
+
+
 
         static int ArmorTemp()
         {
+            var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
+            var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
             var rArm = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.RightArm);
             var lArm = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.LeftArm);
             var chest = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.ChestArmor);
@@ -348,6 +408,11 @@ namespace ClimateCloaks
             {
                 temp += 1;
             }
+            if ((cloak1 != null || cloak2 != null))
+            {
+                temp /= 2;
+            }
+
             return temp;
         }
 
@@ -363,13 +428,13 @@ namespace ClimateCloaks
                     temp = -5;
                     break;
                 case (int)Races.Nord:
-                    temp = +10;
+                    temp = +5;
                     break;
                 case (int)Races.DarkElf:
                     temp = -5;
                     break;
                 case (int)Races.HighElf:
-                    temp = -5;
+                    temp = 0;
                     break;
                 case (int)Races.WoodElf:
                     temp = 0;
@@ -386,17 +451,24 @@ namespace ClimateCloaks
 
         static int ResistTemp(int temp)
         {
-            int resFire = playerEntity.Resistances.PermanentFire / 2;
-            int resFrost = playerEntity.Resistances.PermanentFrost / 2;
-            int raceID = playerEntity.RaceTemplate.ID;
-            if (raceID == 3) { resFrost += 15; }
+            int resFire = playerEntity.Resistances.LiveFire;
+            int resFrost = playerEntity.Resistances.LiveFrost;
+            
 
             if (temp < 0)
             {
-                temp = Mathf.Min(temp + resFrost, 0);                
+                if (playerEntity.RaceTemplate.CriticalWeaknessFlags == DFCareer.EffectFlags.Frost) { resFrost -= 50; }
+                else if (playerEntity.RaceTemplate.LowToleranceFlags == DFCareer.EffectFlags.Frost) { resFrost -= 25; }
+                else if (playerEntity.RaceTemplate.ResistanceFlags == DFCareer.EffectFlags.Frost) { resFrost += 25; }
+                else if (playerEntity.RaceTemplate.ImmunityFlags == DFCareer.EffectFlags.Frost) { resFrost += 50; }
+                temp = Mathf.Min(temp + resFrost, 0);
             }
             else
             {
+                if (playerEntity.RaceTemplate.CriticalWeaknessFlags == DFCareer.EffectFlags.Fire) { resFrost -= 50; }
+                else if (playerEntity.RaceTemplate.LowToleranceFlags == DFCareer.EffectFlags.Fire) { resFrost -= 25; }
+                else if (playerEntity.RaceTemplate.ResistanceFlags == DFCareer.EffectFlags.Fire) { resFrost += 25; }
+                else if (playerEntity.RaceTemplate.ImmunityFlags == DFCareer.EffectFlags.Fire) { resFrost += 50; }
                 temp = Mathf.Max(temp - resFire, 0);
             }
             return temp;
@@ -419,20 +491,6 @@ namespace ClimateCloaks
                 return false;
             }
         }
-// Feet        
-//        static bool BareFeet()
-//        {
-//           var feet = playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
-//
-//            if (feet == null)
-//            {
-//                return true;
-//            }
-//            else
-//            {
-//                return false;
-//            }
-//        }
 
         static int NightTemp()
         {
@@ -509,6 +567,72 @@ namespace ClimateCloaks
                     tempText = "A chill rolls through you...";
                 }
             }
+            return tempText;
+        }
+
+
+        static string SkyTemp(int natTemp)
+        {
+            string tempText = "";
+            if (natTemp > 2)
+            {
+                if (natTemp > 60)
+                {
+                    tempText = "Help... anyone...";
+                }
+                else if (natTemp > 50)
+                {
+                    tempText = "So... hot...";
+                }
+                else if (natTemp > 40)
+                {
+                    tempText = "The heat is unrelenting...";
+                }
+                else if (natTemp > 30)
+                {
+                    tempText = "The weather is scorchingy.";
+                }
+                else if (natTemp > 20)
+                {
+                    tempText = "The weather is uncomfertably hot.";
+                }
+                else if (natTemp > 10)
+                {
+                    tempText = "The weather is comfertably warm.";
+                }
+            }
+            if (natTemp < -2)
+            {
+                if (natTemp < -60)
+                {
+                    tempText = "Help... anyone...";
+                }
+                else if (natTemp < -50)
+                {
+                    tempText = "So... cold...";
+                }
+                else if (natTemp < -40)
+                {
+                    tempText = "The cold is unrelenting...";
+                }
+                else if (natTemp < -30)
+                {
+                    tempText = "The weather is freezing.";
+                }
+                else if (natTemp < -20)
+                {
+                    tempText = "The weather is uncomfertably cold.";
+                }
+                else if (natTemp < -10)
+                {
+                    tempText = "The weather is comfertably cool.";
+                }
+            }
+            else
+            {
+                tempText = "The weather is nice.";
+            }
+
             return tempText;
         }
     }
