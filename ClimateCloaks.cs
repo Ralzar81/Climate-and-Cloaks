@@ -54,7 +54,7 @@ namespace ClimateCloaks
             bool naked = NakedSwitch();
             int temperatureEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + clothingTemp + raceTemp;
             int armorTemp = ArmorTemp() * Mathf.Max(1, temperatureEffect / 10);
-            int maxFatigue = playerEntity.MaxFatigue;
+//int maxFatigue = playerEntity.MaxFatigue;               Old code, to be removed            
 
 
 
@@ -67,7 +67,7 @@ namespace ClimateCloaks
                 temperatureEffect += armorTemp;
                 temperatureEffect = ResistTemp(temperatureEffect);
 
-                //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());
+//DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());        Ingame display of current temperature for testing                   
                 ++counter;
                 if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 5)
                 {
@@ -97,11 +97,17 @@ namespace ClimateCloaks
                 }
                 if (temperatureEffect > 30)
                 {
-                    if (debuffCounter < 80) { debuffCounter += 10; }
-                    int countOrTemp = Mathf.Min(temperatureEffect, debuffCounter);
-                    int tempAttDebuff = Mathf.Max(0, (countOrTemp - 30));
-                    if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff < 50) { tempAttDebuff = 0; }
-                    if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff > 50) { tempAttDebuff *= 2; }
+                    //if (debuffCounter < 80) { debuffCounter += 10; }
+                    //int countOrTemp = Mathf.Min(temperatureEffect, debuffCounter);
+                    //int tempAttDebuff = Mathf.Max(0, (countOrTemp - 30));
+
+                    
+                    if (debuffCounter < 80) { debuffCounter++; }
+                    int countOrTemp = Mathf.Min(temperatureEffect - 30, debuffCounter);
+                    int tempAttDebuff = Mathf.Max(0, (countOrTemp);
+                    
+                    if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff < 40) { tempAttDebuff = 0; }
+                    if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff > 40) { tempAttDebuff *= 2; }                    
                     int currentEn = playerEntity.Stats.PermanentEndurance;
                     int currentSt = playerEntity.Stats.PermanentStrength;
                     int currentAg = playerEntity.Stats.PermanentAgility;
@@ -120,17 +126,32 @@ namespace ClimateCloaks
                     playerEffectManager.MergeDirectStatMods(statMods);
 
 
-                    if (temperatureEffect > 50)
+                    ++counterDmg;
+                    if (temperatureEffect > 50 && counterDmg > 5)
                     {
-                        ++counterDmg;
                         int tempDmg = Mathf.Max(0, (temperatureEffect - 40) / 10);
-                        if (tempDmg > 0 && counterDmg > 5)
-                        {
-                            counterDmg = 0;
-                            DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
-                            playerEntity.DecreaseHealth(tempDmg);
-                        }
+                        counterDmg = 0;
+                        DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
+                        playerEntity.DecreaseHealth(tempDmg);
                     }
+                
+
+
+
+
+
+
+                    //if (temperatureEffect > 50)
+                    //{
+                    //    ++counterDmg;
+                    //    int tempDmg = Mathf.Max(0, (temperatureEffect - 40) / 10);
+                    //    if (tempDmg > 0 && counterDmg > 5)
+                    //    {
+                    //        counterDmg = 0;
+                    //        DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
+                    //        playerEntity.DecreaseHealth(tempDmg);
+                    //    }
+                    //}
                 }
                 else if (temperatureEffect < 30)
                 {
