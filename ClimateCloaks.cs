@@ -71,7 +71,7 @@ namespace ClimateCloaks
 //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());        Ingame display of current temperature for testing                   
                 
 // is it possible to just go "if playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null" ?                
-//                if (bareFeet ==  && (true playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8))  Need bool for "walking = true" and "dismounted = true"
+//                if (!playerEnterExit.IsPlayerInTown && bareFeet == true && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8))  Need bool for "walking = true" and "dismounted = true"
 //                {
 //                        string tempDmgTxt = "The rough ground hurts your bare feet.";
 //                        DaggerfallUI.AddHUDText(tempDmgTxt);
