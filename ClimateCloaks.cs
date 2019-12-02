@@ -70,13 +70,7 @@ namespace ClimateCloaks
 
 //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());        Ingame display of current temperature for testing                   
                 
-// is it possible to just go "if playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null" ?                
-//                if (!playerEnterExit.IsPlayerInTown && bareFeet == true && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8))  Need bool for "walking = true" and "dismounted = true"
-//                {
-//                        string tempDmgTxt = "The rough ground hurts your bare feet.";
-//                        DaggerfallUI.AddHUDText(tempDmgTxt);
-//                        playerEntity.DecreaseHealth(1);                
-//                }
+
                 ++counter;                
                 if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 5)
                 {
@@ -133,6 +127,13 @@ namespace ClimateCloaks
                     statMods[(int)DFCareer.Stats.Personality] = -Mathf.Min(tempAttDebuff, currentPer - 5);
                     statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
                     playerEffectManager.MergeDirectStatMods(statMods);
+                    // is it possible to just go "if playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null" ?                
+//                if (temperatureEffect > 30 && bareFeet == true && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8))  Need bool for "walking = true" and "dismounted = true"
+//                {
+//                        string tempDmgTxt = "The rough ground hurts your bare feet.";
+//                        DaggerfallUI.AddHUDText(tempDmgTxt);
+//                        playerEntity.DecreaseHealth(1);                
+//                }
 
 
                     ++counterDmg;
@@ -141,7 +142,7 @@ namespace ClimateCloaks
                         int tempDmg = Mathf.Max(0, (temperatureEffect - 40) / 10);
                         counterDmg = 0;
                         DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
-                        playerEntity.DecreaseHealth(tempDmg);
+                        playerEntity.DecreaseHealth(tempDmg);                       
                     }
                 
 
