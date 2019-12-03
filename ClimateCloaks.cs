@@ -60,7 +60,7 @@ namespace ClimateCloaks
             {
                 counter = 0;
                 counterDmg = 0;
-                debuffCounter = 0;
+                counterDebuff = 0;
             }
 
 
@@ -115,8 +115,8 @@ namespace ClimateCloaks
                 }
                 if (temperatureEffect > 30)
                 {
-                    if (debuffCounter < 80) { debuffCounter++; }
-                    int countOrTemp = Mathf.Min(temperatureEffect - 30, debuffCounter);
+                    if (counterDebuff < 80) { counterDebuff++; }
+                    int countOrTemp = Mathf.Min(temperatureEffect - 30, counterDebuff);
                     int tempAttDebuff = Mathf.Max(0, countOrTemp);
                     if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff < 50) { tempAttDebuff = 0; }
                     if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff > 50) { tempAttDebuff *= 2; }
@@ -137,20 +137,24 @@ namespace ClimateCloaks
                     statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
                     playerEffectManager.MergeDirectStatMods(statMods);
 
-                    ++counterDmg;
-                    if (temperatureEffect > 50 && counterDmg > 5)
-                    {
-                        int tempDmg = Mathf.Max(0, (temperatureEffect - 40) / 10);
-                        counterDmg = 0;
-                        DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
-                        playerEntity.DecreaseHealth(tempDmg);
-                    }
 
+
+//change tempDmg to escalating with time.
+                    
+                    
+                    if (temperatureEffect > 50)
+                    {    
+                        counterDmg += (temperatureEffect - 50);
+                        
+                        if (counterDmg > 15)
+                            counterDmg = 0;
+                            DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
+                            playerEntity.DecreaseHealth(2);
+                        }                       
+                    }
+                    else {counterDmg = 0;}
                 }
-                else if (temperatureEffect < 30)
-                {
-                    debuffCounter = 0;
-                }            
+                else {counterDebuff = 0;}            
             }
         }
 
