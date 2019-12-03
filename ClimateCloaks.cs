@@ -56,12 +56,6 @@ namespace ClimateCloaks
             string skyTemp = SkyTemp(natTempEffect);
             int armorTemp = ArmorTemp() * Mathf.Max(1, natTempEffect / 10);
 
-            if (playerEntity.IsResting && GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease && playerEnterExit.IsPlayerInsideBuilding)
-            {
-                counter = 0;
-                counterDmg = 0;
-                counterDebuff = 0;
-            }
 
 
             if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled
@@ -155,6 +149,12 @@ namespace ClimateCloaks
                     else {counterDmg = 0;}
                 }
                 else {counterDebuff = 0;}            
+            }
+            else
+            {
+                counter = 0;
+                counterDmg = 0;
+                counterDebuff = 0;
             }
         }
 
