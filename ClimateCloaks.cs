@@ -14,12 +14,8 @@ namespace ClimateCloaks
 {
     public class ClimateCloaks : MonoBehaviour
     {
-
-
         static Mod mod;
         public bool check = false;
-
-
 
         //[Invoke(StateManager.StateTypes.Start, 0)]
         [Invoke(StateManager.StateTypes.Game, 0)]
@@ -32,16 +28,13 @@ namespace ClimateCloaks
             mod.IsReady = true;
         }
 
-
-
         static int counter = 0;
         static int counterDmg = 0;
-        static int debuffCounter = 0;
+        static int counterDebuff = 0;
         static PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
         static PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
         static PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
         static EntityEffectManager playerEffectManager = playerEntity.EntityBehaviour.GetComponent<EntityEffectManager>();
-
 
         private static void TemperatureEffects_OnNewMagicRound()
         {
@@ -50,12 +43,11 @@ namespace ClimateCloaks
             int seasonTemp = SeasonTemp();
             int weatherTemp = WeatherTemp();
             int nightTemp = NightTemp();
-            int clothingTemp = ChestTemp() + FeetTemp();
+            int clothingTemp = ClothTemp();
             bool naked = NakedSwitch();
             int natTempEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + raceTemp;
             string skyTemp = SkyTemp(natTempEffect);
             int armorTemp = ArmorTemp() * Mathf.Max(1, natTempEffect / 10);
-
 
 
             if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled
@@ -63,7 +55,6 @@ namespace ClimateCloaks
                 && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
                 && !playerEnterExit.IsPlayerInsideBuilding)
             {
-
                 if ((natTempEffect - playerEntity.Stats.PermanentEndurance) > 40 && playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8)
                 && GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot)
                 {
@@ -71,16 +62,16 @@ namespace ClimateCloaks
                     playerEntity.DecreaseHealth(1);
                 }
 
-
                 int temperatureEffect = ResistTemp(natTempEffect + armorTemp + clothingTemp);
-                DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());//Shows the current temp ingame for testing purposes.
+                //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString()); Shows the current temp ingame for testing purposes.
 
                 if (GameManager.Instance.PlayerMouseLook.Pitch <= -70)
                 {
-                    DaggerfallUI.SetMidScreenText(skyTemp); 
+                    DaggerfallUI.SetMidScreenText(skyTemp);
                 }
 
                 ++counter;
+
                 if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 5)
                 {
                     counter = 0;
@@ -106,7 +97,12 @@ namespace ClimateCloaks
                     }
                     playerEntity.DecreaseFatigue(fatigueTemp, true);
 
+                    if (playerEntity.CurrentFatigue == 0)
+                    { playerEntity.DecreaseHealth(1); }
                 }
+
+                temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
+
                 if (temperatureEffect > 30)
                 {
                     if (counterDebuff < 80) { counterDebuff++; }
@@ -131,34 +127,21 @@ namespace ClimateCloaks
                     statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
                     playerEffectManager.MergeDirectStatMods(statMods);
 
-
-
-//change tempDmg to escalating with time.
-                    
-                    
                     if (temperatureEffect > 50)
-                    {    
+                    {
                         counterDmg += (temperatureEffect - 50);
-                        
+
                         if (counterDmg > 15)
                             counterDmg = 0;
-                            DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
-                            playerEntity.DecreaseHealth(2);
-                        }                       
+                        DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
+                        playerEntity.DecreaseHealth(2);
                     }
-                    else {counterDmg = 0;}
+                    else { counterDmg = 0; }
                 }
-                else {counterDebuff = 0;}            
+                else { counterDebuff = 0; }
             }
-            else
-            {
-                counter = 0;
-                counterDmg = 0;
-                counterDebuff = 0;
-            }
+            else { counter = 0; counterDmg = 0; counterDebuff = 0; }
         }
-
-
 
 
         static int ClimateTemp()
@@ -253,132 +236,202 @@ namespace ClimateCloaks
                 {
                     temp = -5;
                 }
-
-
-
             }
             return temp;
         }
 
-        //static int ClothingTemp()
-        //{
-        //    var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
-        //    var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
-        //    var chest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
-        //    var legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
-        //    var feet = playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
-        //    var gloves = playerEntity.ItemEquipTable.GetItem(EquipSlots.Gloves);
-
-        //    int temp = 0;
-
-        //    if (cloak1 != null)
-        //    {
-        //        temp += 5;
-        //    }
-        //    if (cloak2 != null)
-        //    {
-        //        temp += 5;
-        //    }
-        //    if (chest != null)
-        //    {
-        //        temp += 15;
-        //    }
-        //    if (legs != null)
-        //    {
-        //        temp += 10;
-        //    }
-        //    if (feet != null)
-        //    {
-        //        temp += 3;
-        //    }
-        //    if (gloves != null)
-        //    {
-        //        temp += 2;
-        //    }
-        //    return temp;
-        //}
-
-
-
-
-
-        static int ChestTemp()
+        static int ClothTemp()
         {
-            var chest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
+            var chestCloth = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
+            var feetCloth = playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
+            var legsCloth = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
+            var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
+            var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
+            var gender = playerEntity.Gender;
+            int chest = 0;
+            int feet = 0;
+            int legs = 0;
+            int cloak = 0;
+            int temp = 0;
 
-            if (chest != null)
+            if (chestCloth != null)
             {
-                switch (playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes).TemplateIndex)
+                if (gender == Genders.Male)
                 {
-                    case (int)MensClothing.Straps:
-                    case (int)MensClothing.Armbands:
-                    case (int)MensClothing.Fancy_Armbands:
-                    case (int)MensClothing.Champion_straps:
-                    case (int)MensClothing.Sash:
-                    case (int)MensClothing.Challenger_Straps:
-                    case (int)MensClothing.Eodoric:
-                        return +0;
-                    case (int)MensClothing.Vest:
-                    case (int)MensClothing.Short_tunic:
-                    case (int)MensClothing.Short_shirt_unchangeable:
-                    case (int)MensClothing.Short_shirt:
-                    case (int)MensClothing.Short_shirt_with_belt:
-                    case (int)MensClothing.Short_shirt_closed_top:
-                    case (int)MensClothing.Short_shirt_closed_top2:
-                        return +5;
-                    case (int)MensClothing.Open_Tunic:
-                    case (int)MensClothing.Toga:
-                        return +8;
-                    case (int)MensClothing.Long_shirt:
-                    case (int)MensClothing.Long_shirt_with_belt:
-                    case (int)MensClothing.Long_shirt_closed_top:
-                    case (int)MensClothing.Long_shirt_closed_top2:
-                    case (int)MensClothing.Long_shirt_unchangeable:
-                        return +10;
-                    case (int)MensClothing.Plain_robes:
-                    case (int)MensClothing.Priest_robes:
-                        return +12;
-                    case (int)MensClothing.Anticlere_Surcoat:
-                    case (int)MensClothing.Formal_tunic:
-                    case (int)MensClothing.Reversible_tunic:
-                    case (int)MensClothing.Kimono:
-                    case (int)MensClothing.Dwynnen_surcoat:
-                        return +15;
-                    default:
-                        return 0;
-
+                    switch (chestCloth.TemplateIndex)
+                    {
+                        case (int)MensClothing.Straps:
+                        case (int)MensClothing.Armbands:
+                        case (int)MensClothing.Fancy_Armbands:
+                        case (int)MensClothing.Champion_straps:
+                        case (int)MensClothing.Sash:
+                        case (int)MensClothing.Challenger_Straps:
+                        case (int)MensClothing.Eodoric:
+                        case (int)MensClothing.Vest:
+                            chest = 1;
+                            break;
+                        case (int)MensClothing.Short_shirt_unchangeable:
+                        case (int)MensClothing.Short_shirt:
+                        case (int)MensClothing.Short_shirt_with_belt:
+                            chest = 5;
+                            break;
+                        case (int)MensClothing.Short_tunic:
+                        case (int)MensClothing.Toga:
+                        case (int)MensClothing.Short_shirt_closed_top:
+                        case (int)MensClothing.Short_shirt_closed_top2:
+                        case (int)MensClothing.Long_shirt:
+                        case (int)MensClothing.Long_shirt_with_belt:
+                        case (int)MensClothing.Long_shirt_unchangeable:
+                            chest = 8;
+                            break;
+                        case (int)MensClothing.Open_Tunic:
+                        case (int)MensClothing.Long_shirt_closed_top:
+                        case (int)MensClothing.Long_shirt_closed_top2:
+                        case (int)MensClothing.Kimono:
+                            chest = 10;
+                            break;
+                        case (int)MensClothing.Priest_robes:
+                        case (int)MensClothing.Anticlere_Surcoat:
+                        case (int)MensClothing.Formal_tunic:
+                        case (int)MensClothing.Reversible_tunic:                       
+                        case (int)MensClothing.Dwynnen_surcoat:
+                        case (int)MensClothing.Plain_robes:
+                            chest = 15;
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (chestCloth.TemplateIndex)
+                    {
+                        case (int)WomensClothing.Brassier:
+                        case (int)WomensClothing.Formal_brassier:
+                        case (int)WomensClothing.Eodoric:
+                        case (int)WomensClothing.Formal_eodoric:
+                        case (int)WomensClothing.Vest:
+                            chest = 1;
+                            break;
+                        case (int)WomensClothing.Short_shirt:
+                        case (int)WomensClothing.Short_shirt_belt:
+                        case (int)WomensClothing.Short_shirt_unchangeable:
+                            chest = 5;
+                            break;
+                        case (int)WomensClothing.Short_shirt_closed:
+                        case (int)WomensClothing.Short_shirt_closed_belt:
+                        case (int)WomensClothing.Long_shirt:
+                        case (int)WomensClothing.Long_shirt_belt:
+                        case (int)WomensClothing.Long_shirt_unchangeable:
+                        case (int)WomensClothing.Peasant_blouse:
+                        case (int)WomensClothing.Strapless_dress:
+                            chest = 8;
+                            break;
+                        case (int)WomensClothing.Evening_gown:
+                        case (int)WomensClothing.Casual_dress:
+                        case (int)WomensClothing.Long_shirt_closed:
+                        case (int)WomensClothing.Open_tunic:
+                            chest  = + 10;
+                            break;
+                        case (int)WomensClothing.Priestess_robes:
+                        case (int)WomensClothing.Plain_robes:
+                        case (int)WomensClothing.Long_shirt_closed_belt:
+                        case (int)WomensClothing.Day_gown:
+                            chest = 15;
+                            break;
+                    }
                 }
             }
-            else { return 0; }
-        }
-
-        static int FeetTemp()
-        {
-
-            var feet = playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
-
-            if (feet != null)
+            if (feetCloth != null)
             {
-                switch (playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet).TemplateIndex)
+                if (gender == Genders.Male)
                 {
-                    case (int)MensClothing.Sandals:
-                        return 0;
-                    case (int)MensClothing.Shoes:
-                        return +2;
-                    case (int)MensClothing.Tall_Boots:
-                    case (int)MensClothing.Boots:
-                        return +5;
-                    default:
-                        return 0;
+                    switch (feetCloth.TemplateIndex)
+                    {
+                        case (int)MensClothing.Sandals:
+                            feet = 0;
+                            break;
+                        case (int)MensClothing.Shoes:
+                            feet = 2;
+                            break;
+                        case (int)MensClothing.Tall_Boots:
+                        case (int)MensClothing.Boots:
+                            feet = 5;
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (feetCloth.TemplateIndex)
+                    {
+                        case (int)WomensClothing.Sandals:
+                            feet = 0;
+                            break;
+                        case (int)WomensClothing.Shoes:
+                            feet = 2;
+                            break;
+                        case (int)WomensClothing.Tall_boots:
+                        case (int)WomensClothing.Boots:
+                            feet = 5;
+                            break;
+                    }
+                }
+
+            }
+            if (legsCloth != null)
+            {
+                if (gender == Genders.Male)
+                {
+                    switch (legsCloth.TemplateIndex)
+                    {
+                        case (int)MensClothing.Loincloth:
+                        case (int)MensClothing.Wrap:
+                            legs = 1;
+                            break;
+                        case (int)MensClothing.Khajiit_suit:
+                            legs = 2;
+                            break;
+                        case (int)MensClothing.Short_skirt:
+                            legs = 4;
+                            break;
+                        case (int)MensClothing.Long_Skirt:
+                            legs = 8;
+                            break;
+                        case (int)MensClothing.Casual_pants:
+                        case (int)MensClothing.Breeches:
+                            legs = 10;
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (legsCloth.TemplateIndex)
+                    {
+                        case (int)WomensClothing.Loincloth:
+                        case (int)WomensClothing.Wrap:
+                            legs = 1;
+                            break;
+                        case (int)WomensClothing.Khajiit_suit:
+                            legs = 2;
+                            break;
+                        case (int)WomensClothing.Tights:
+                            legs = 4;
+                            break;
+                        case (int)WomensClothing.Long_skirt:
+                            legs = 8;
+                            break;
+                        case (int)WomensClothing.Casual_pants:
+                            legs = 10;
+                            break;
+                    }
                 }
             }
-            else { return 0; }
+            if (cloak1 != null || cloak2 != null)
+            {
+                if (cloak1 != null) { cloak += 15; }
+                if (cloak2 != null) { cloak += 15; }
+            }           
+            temp = chest + feet + legs + cloak;
+            return temp;  
         }
-
-
-
-
-
 
         static int ArmorTemp()
         {
@@ -457,7 +510,6 @@ namespace ClimateCloaks
         {
             int resFire = playerEntity.Resistances.LiveFire;
             int resFrost = playerEntity.Resistances.LiveFrost;
-            
 
             if (temp < 0)
             {
@@ -484,7 +536,6 @@ namespace ClimateCloaks
             var legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
             var aChest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestArmor);
             var aLegs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsArmor);
-
 
             if (chest == null && legs == null && aChest == null && aLegs == null && playerEntity.RaceTemplate.ID != 7 && playerEntity.RaceTemplate.ID != 8)
             {
@@ -545,7 +596,7 @@ namespace ClimateCloaks
             {
                 if (temperatureEffect > 50)
                 {
-                    tempText = "You feel like you're burning up!";
+                    tempText = "You feel like you are burning up!";
                 }
                 else if (temperatureEffect > 30)
                 {
@@ -574,7 +625,6 @@ namespace ClimateCloaks
             return tempText;
         }
 
-
         static string SkyTemp(int natTemp)
         {
             string tempText = "";
@@ -582,42 +632,42 @@ namespace ClimateCloaks
             {
                 if (natTemp > 60)
                 {
-                    tempText = "Help... anyone...";
+                    tempText = "A dragon would seek shade in this weather.";
                 }
                 else if (natTemp > 50)
                 {
-                    tempText = "So... hot...";
+                    tempText = "Only the hardiest go outside in this heat.";
                 }
                 else if (natTemp > 40)
                 {
-                    tempText = "The heat is unrelenting...";
+                    tempText = "The heat is unrelenting.";
                 }
                 else if (natTemp > 30)
                 {
-                    tempText = "The weather is scorchingy.";
+                    tempText = "The weather is scorching.";
                 }
                 else if (natTemp > 20)
                 {
-                    tempText = "The weather is uncomfertably hot.";
+                    tempText = "The weather is hot.";
                 }
                 else if (natTemp > 10)
                 {
-                    tempText = "The weather is comfertably warm.";
+                    tempText = "The weather is nice and warm.";
                 }
             }
-            if (natTemp < -2)
+            if (natTemp < -3)
             {
                 if (natTemp < -60)
                 {
-                    tempText = "Help... anyone...";
+                    tempText = "An Ice Atronach would light a fire in this weather.";
                 }
                 else if (natTemp < -50)
                 {
-                    tempText = "So... cold...";
+                    tempText = "Only the hardiest go outside in this cold.";
                 }
                 else if (natTemp < -40)
                 {
-                    tempText = "The cold is unrelenting...";
+                    tempText = "The cold is unrelenting.";
                 }
                 else if (natTemp < -30)
                 {
@@ -625,19 +675,18 @@ namespace ClimateCloaks
                 }
                 else if (natTemp < -20)
                 {
-                    tempText = "The weather is uncomfertably cold.";
+                    tempText = "The weather is cold.";
                 }
                 else if (natTemp < -10)
                 {
-                    tempText = "The weather is comfertably cool.";
+                    tempText = "The weather is nice and cool.";
                 }
             }
             else
             {
                 tempText = "The weather is nice.";
             }
-
             return tempText;
         }
-    }
+    }   
 }
