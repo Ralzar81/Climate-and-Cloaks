@@ -49,12 +49,13 @@ namespace ClimateCloaks
             string skyTemp = SkyTemp(natTempEffect);
             int armorTemp = ArmorTemp() * Mathf.Max(1, natTempEffect / 10);
 
-
+            //Checks that player is awake, in control, not dead, not fast traveling etc and not inside a building.
             if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled
                 && !playerEntity.IsResting
                 && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
                 && !playerEnterExit.IsPlayerInsideBuilding)
             {
+                //Feet only check for heat, not cold. Need to fix this.
                 if ((natTempEffect - playerEntity.Stats.PermanentEndurance) > 40 && playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8)
                 && GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot)
                 {
@@ -63,25 +64,38 @@ namespace ClimateCloaks
                 }
 
                 int temperatureEffect = ResistTemp(natTempEffect + armorTemp + clothingTemp);
-                //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString()); Shows the current temp ingame for testing purposes.
+                
+                //Shows the current temp ingame for testing purposes.
+                //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString());
 
+                //If you look up, midtext displays how the weather is.
                 if (GameManager.Instance.PlayerMouseLook.Pitch <= -70)
                 {
                     DaggerfallUI.SetMidScreenText(skyTemp);
                 }
 
-                ++counter;
 
+                //Start of the lowest level of effects. 
+                //This code need to know if it is working in positive (hot) 
+                //or negative (cold) numbers to display correct text to the player.
+                //Counter makes sure this triggers every 5th magicround.
+                ++counter;
                 if ((temperatureEffect > 10 || temperatureEffect < 10) && counter > 5)
                 {
                     counter = 0;
+                    
+                    //Displays text informing player how /warm/cold he feels.
                     DaggerfallUI.AddHUDText(TempText(temperatureEffect));
+                    
+                    //Checks if character is naked in hot day. 
+                    //The Naked() method returns False if you are argonian or khajiit.
                     if (temperatureEffect > 20 && naked == true && nightTemp == 0)
                     {
                         string tempDmgTxt = "The sun burns your naked skin.";
                         DaggerfallUI.AddHUDText(tempDmgTxt);
                         playerEntity.DecreaseHealth(2);
                     }
+                    //Checks if you are naked in cold temperatures.
                     else if (temperatureEffect < 20 && naked == true)
                     {
                         string tempDmgTxt = "The icy air numbs your naked skin";
@@ -89,7 +103,11 @@ namespace ClimateCloaks
                         playerEntity.DecreaseHealth(2);
                     }
 
+                    //Calculation makes negative temperatureEffect into a positive.
                     temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
+                    
+                    //Decreases fatigue based on temperature.
+                    //Argonians have the effect delayed, but multiplied once it hits.
                     int fatigueTemp = temperatureEffect / 10;
                     if (playerEntity.RaceTemplate.ID == 8)
                     {
@@ -97,19 +115,35 @@ namespace ClimateCloaks
                     }
                     playerEntity.DecreaseFatigue(fatigueTemp, true);
 
+
+                    //Evil bugfix to avoid people walking around with 0 Fatigue.
                     if (playerEntity.CurrentFatigue == 0)
                     { playerEntity.DecreaseHealth(1); }
+                
+                
                 }
 
+                //Calculation makes negative temperatureEffect into a positive.
+                //Need to look at moving the whole IF-statement below into the IF-statement above. 
+                //So 10, 30 and 50 temp is nested inside eachother.
+                //I just need to make sure that the "counter" only triggers the right bits above and nothing below.
+                //Unless I figure out some way to combine the counters.
                 temperatureEffect = Mathf.Max(temperatureEffect, temperatureEffect * -1);
-
+                
+                //Code triggers if the temperature is over 30 (note code above making it allways positive)
                 if (temperatureEffect > 30)
                 {
+                    //counterDebuff staggers Attribute debuffs. So instead instantly debuffing you, it ticks up by 
+                    //1 each round until it hits the current temperature.                   
                     if (counterDebuff < 80) { counterDebuff++; }
                     int countOrTemp = Mathf.Min(temperatureEffect - 30, counterDebuff);
                     int tempAttDebuff = Mathf.Max(0, countOrTemp);
+                    //Code to stop Argonians from getting debuffs until 50.
+                    //Need to fix this code. It does not take into account the -30 applied above.
+                    //Need to change to <20 and >20.
                     if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff < 50) { tempAttDebuff = 0; }
                     if (playerEntity.RaceTemplate.ID == 8 && tempAttDebuff > 50) { tempAttDebuff *= 2; }
+                    //Debuffs all Attributes based on temperature.
                     int currentEn = playerEntity.Stats.PermanentEndurance;
                     int currentSt = playerEntity.Stats.PermanentStrength;
                     int currentAg = playerEntity.Stats.PermanentAgility;
@@ -127,21 +161,32 @@ namespace ClimateCloaks
                     statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
                     playerEffectManager.MergeDirectStatMods(statMods);
 
+                    //Code for extreme heat/cold.
+                    //The damage and text will trigger faster and faster as the temp increases.
                     if (temperatureEffect > 50)
                     {
                         counterDmg += (temperatureEffect - 50);
 
                         if (counterDmg > 15)
-                            counterDmg = 0;
+                    //I seem to have forgotten {} here? Which makes it just trigger every round.        
+                        counterDmg = 0;
                         DaggerfallUI.AddHUDText("You cannot go on much longer in this weather...");
                         playerEntity.DecreaseHealth(2);
-                    }
+                    }                   
                     else { counterDmg = 0; }
+                
+                //resets the Attribute debuff counter if player manages to lower tempertureEffect.
                 }
                 else { counterDebuff = 0; }
+            
+            //resets all counters if player enters status that is not affected by the mod.
             }
             else { counter = 0; counterDmg = 0; counterDebuff = 0; }
         }
+
+
+
+
 
 
         static int ClimateTemp()
@@ -177,6 +222,7 @@ namespace ClimateCloaks
                     temp = -40;
                     break;
             }
+            //Climate temperature lowered if player is in dungeon.
             temp = DungeonTemp(temp);
             return temp;
         }
@@ -199,6 +245,7 @@ namespace ClimateCloaks
                     temp = -10;
                     break;
             }
+           //Climate temperature lowered if player is in dungeon.
             temp = DungeonTemp(temp);
             return temp;
         }
@@ -465,6 +512,9 @@ namespace ClimateCloaks
             {
                 temp += 1;
             }
+            //Doubble (()) ? Need to fix.
+            //This code is to lower armor temperature if you cover it with a cloak.
+            //The armor temp will be multiplied by heat (see TemperatureEffects_OnNewMagicRound)
             if ((cloak1 != null || cloak2 != null))
             {
                 temp /= 2;
@@ -506,6 +556,9 @@ namespace ClimateCloaks
             return temp;
         }
 
+
+
+//All resistance flags affect Frost. Need to fix.
         static int ResistTemp(int temp)
         {
             int resFire = playerEntity.Resistances.LiveFire;
