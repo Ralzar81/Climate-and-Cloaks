@@ -45,14 +45,15 @@ namespace ClimateCloaks
                 && !playerEnterExit.IsPlayerInsideBuilding)
             {
                 int raceTemp = RaceTemp();
-                int climateTemp = ClimateTemp();
-                int seasonTemp = SeasonTemp();
+                int climateTemp = DungeonTemp(ClimateTemp());
+                int seasonTemp = DungeonTemp(SeasonTemp());
                 int weatherTemp = WeatherTemp();
                 int nightTemp = NightTemp();
                 int clothingTemp = ClothTemp();
                 bool naked = NakedSwitch();
                 int natTempEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + raceTemp;
-                string skyTemp = SkyTemp(natTempEffect);
+                int resNatTempEffect = ResistTemp(natTempEffect);
+                string skyTemp = SkyTemp(resNatTempEffect);
                 int armorTemp = ArmorTemp() * Mathf.Max(1, natTempEffect / 10);
 
                 //To counter a bug where you have 0 Stamina with no averse effects.
@@ -61,8 +62,10 @@ namespace ClimateCloaks
 
                 //If feet are bare it is too hot ot cold, you take damage.
                 //Does not affect Argonians and Khajiit.
+                int endBonus = 10 + (playerEntity.Stats.LiveEndurance / 2);
+                int resNatTempAbs = Mathf.Abs(resNatTempEffect);
                 if (playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null
-                    && ((natTempEffect - playerEntity.Stats.PermanentEndurance) > 20 || (natTempEffect + playerEntity.Stats.PermanentEndurance) < -20)
+                    && (resNatTempAbs > endBonus)
                     && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8)
                     && GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot)
                 {
@@ -71,7 +74,7 @@ namespace ClimateCloaks
                 }
 
                 int temperatureEffect = ResistTemp(natTempEffect + armorTemp + clothingTemp);
-                //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString()); Shows the current temp ingame for testing purposes.
+                DaggerfallUI.SetMidScreenText(temperatureEffect.ToString()); //Shows the current temp ingame for testing purposes.
 
                 //If you look up, midtext displays how the weather is.
                 if (GameManager.Instance.PlayerMouseLook.Pitch <= -70)
@@ -605,7 +608,7 @@ namespace ClimateCloaks
         {
             if (playerEnterExit.IsPlayerInsideDungeon)
             {
-                temp = temp / 3;
+                temp = temp / 2;
             }
             return temp;
         }
@@ -649,6 +652,7 @@ namespace ClimateCloaks
         static string SkyTemp(int natTemp)
         {
             string tempText = "The weather is nice.";
+
             if (natTemp > 2)
             {
                 if (natTemp > 60)
