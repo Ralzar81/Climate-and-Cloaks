@@ -74,7 +74,9 @@ namespace ClimateCloaks
                 }
 
                 int temperatureEffect = ResistTemp(natTempEffect + armorTemp + clothingTemp);
-                DaggerfallUI.SetMidScreenText(temperatureEffect.ToString()); //Shows the current temp ingame for testing purposes.
+
+                //Shows the current temp ingame for testing purposes.
+                //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString()); 
 
                 //If you look up, midtext displays how the weather is.
                 if (GameManager.Instance.PlayerMouseLook.Pitch <= -70)
