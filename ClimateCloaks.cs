@@ -30,7 +30,7 @@ namespace ClimateCloaks
 
         static int counter = 0;
         static int counterDmg = 0;
-        static int counterDebuff = 0;
+        static int counterDebuff = 0;     
         static PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
         static PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
         static PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
@@ -38,11 +38,14 @@ namespace ClimateCloaks
 
         private static void TemperatureEffects_OnNewMagicRound()
         {
+
             //Checks that player is awake, in control, not dead, not fast traveling etc and not inside a building.
-            if (playerEntity.CurrentHealth > 0 && playerEntity.EntityBehaviour.enabled
-                && !playerEntity.IsResting
+            if (playerEntity.CurrentHealth > 0
+                && !playerEntity.IsResting && !DaggerfallUI.Instance.FadeBehaviour.FadeInProgress
+                //(playerEntity.IsResting || !DaggerfallUI.Instance.FadeBehaviour.FadeInProgress) For mod effect while sleeping.
                 && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
-                && !playerEnterExit.IsPlayerInsideBuilding)
+                && !playerEnterExit.IsPlayerInsideBuilding
+                && !GameManager.IsGamePaused)
             {
                 int raceTemp = RaceTemp();
                 int climateTemp = DungeonTemp(ClimateTemp());
@@ -50,11 +53,20 @@ namespace ClimateCloaks
                 int weatherTemp = WeatherTemp();
                 int nightTemp = NightTemp();
                 int clothingTemp = ClothTemp();
+                bool cloakOn = CloakSwitch();
                 bool naked = NakedSwitch();
                 int natTempEffect = climateTemp + nightTemp + seasonTemp + weatherTemp + raceTemp;
                 int resNatTempEffect = ResistTemp(natTempEffect);
                 string skyTemp = SkyTemp(resNatTempEffect);
-                int armorTemp = ArmorTemp() * Mathf.Max(1, natTempEffect / 10);
+                string dngTemp = DngTemp(resNatTempEffect);
+                int armorTemp = ArmorTemp();
+
+
+                //Increases armorTemp exponentially during the day.
+                if (DaggerfallUnity.Instance.WorldTime.Now.IsDay && !playerEnterExit.IsPlayerInsideDungeon && cloakOn != true)
+                {
+                    armorTemp *= Mathf.Max(1, natTempEffect / 20);
+                }
 
                 //To counter a bug where you have 0 Stamina with no averse effects.
                 if (playerEntity.CurrentFatigue == 0)
@@ -76,12 +88,14 @@ namespace ClimateCloaks
                 int temperatureEffect = ResistTemp(natTempEffect + armorTemp + clothingTemp);
 
                 //Shows the current temp ingame for testing purposes.
-                //DaggerfallUI.SetMidScreenText(temperatureEffect.ToString()); 
+                //DaggerfallUI.SetMidScreenText("Temp: " + temperatureEffect.ToString() + " Month: " + seasonTemp.ToString() + " Nat: " + natTempEffect.ToString() + " Arm: " + armorTemp.ToString());
+
 
                 //If you look up, midtext displays how the weather is.
                 if (GameManager.Instance.PlayerMouseLook.Pitch <= -70)
                 {
-                    DaggerfallUI.SetMidScreenText(skyTemp);
+                    if (!playerEnterExit.IsPlayerInsideDungeon) { DaggerfallUI.SetMidScreenText(skyTemp); }
+                    else { DaggerfallUI.SetMidScreenText(dngTemp); }
                 }
 
                 //Start of the lowest level of effects. 
@@ -241,16 +255,36 @@ namespace ClimateCloaks
 
         static int SeasonTemp()
         {
-            switch (DaggerfallUnity.Instance.WorldTime.Now.SeasonValue)
+            switch (DaggerfallUnity.Instance.WorldTime.Now.MonthValue)
             {
-                case DaggerfallDateTime.Seasons.Summer:
-                    return 20;
-                case DaggerfallDateTime.Seasons.Winter:
-                    return -20;
-                case DaggerfallDateTime.Seasons.Fall:
-                    return -10;
-                case DaggerfallDateTime.Seasons.Spring:
+                //Spring
+                case DaggerfallDateTime.Months.FirstSeed:
+                    return -5;
+                case DaggerfallDateTime.Months.RainsHand:
+                    return 0;
+                case DaggerfallDateTime.Months.SecondSeed:
+                    return 5;
+                //Summer
+                case DaggerfallDateTime.Months.Midyear:
                     return 10;
+                case DaggerfallDateTime.Months.SunsHeight:
+                    return 20;
+                case DaggerfallDateTime.Months.LastSeed:
+                    return +15;
+                //Fall
+                case DaggerfallDateTime.Months.Hearthfire:
+                    return 0;
+                case DaggerfallDateTime.Months.Frostfall:
+                    return -5;
+                case DaggerfallDateTime.Months.SunsDusk:
+                    return -10;
+                //Winter
+                case DaggerfallDateTime.Months.EveningStar:
+                    return -15;
+                case DaggerfallDateTime.Months.MorningStar:
+                    return -20;
+                case DaggerfallDateTime.Months.SunsDawn:
+                    return -15;
             }
             return 0;
         }
@@ -258,49 +292,39 @@ namespace ClimateCloaks
         static int WeatherTemp()
         {
             int temp = 0;
-            int cloak = 0;
+            bool cloakOn = CloakSwitch();
             if (!playerEnterExit.IsPlayerInsideDungeon)
             {
-                var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
-                var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
                 bool isRaining = GameManager.Instance.WeatherManager.IsRaining;
                 bool isOvercast = GameManager.Instance.WeatherManager.IsOvercast;
                 bool isStorming = GameManager.Instance.WeatherManager.IsStorming;
                 bool isSnowing = GameManager.Instance.WeatherManager.IsSnowing;
 
-                if (cloak1 != null || cloak2 != null)
+                if (cloakOn == true)
                 {
-                    cloak = 15;
+                    temp += 15;
                 }
                 if (isRaining)
                 {
-                    temp = -20 + cloak;
+                    temp -= 20;
                 }
                 else if (isStorming)
                 {
-                    temp = -25 + cloak;
+                    temp -= 25;
                 }
                 else if (isSnowing)
                 {
-                    temp = -18 + cloak;
+                    temp -= 18;
                 }
                 else if (isOvercast)
                 {
-                    temp = -5;
+                    temp -= 5;
                 }
             }
             return temp;
         }
 
 
-
-
-
-
-
-
-
-   
 
 
 
@@ -317,6 +341,7 @@ namespace ClimateCloaks
             int legs = 0;
             int cloak = 0;
             int temp = 0;
+            bool cloakOn = CloakSwitch();
 
             if (chestCloth != null)
             {
@@ -488,10 +513,10 @@ namespace ClimateCloaks
                     }
                 }
             }
-            if (cloak1 != null || cloak2 != null)
+            if (cloakOn == true)
             {
-                if (cloak1 != null) { cloak += 15; }
-                if (cloak2 != null) { cloak += 15; }
+                if (cloak1 != null && cloak2 != null) { cloak += 35; }
+                else { cloak += 15; }            
             }           
             temp = chest + feet + legs + cloak;
             return temp;  
@@ -499,42 +524,97 @@ namespace ClimateCloaks
 
         static int ArmorTemp()
         {
-            var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
-            var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
-            var rArm = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.RightArm);
-            var lArm = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.LeftArm);
-            var chest = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.ChestArmor);
-            var legs = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.LegsArmor);
-            var head = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.Head);
-
+            var rArm = playerEntity.ItemEquipTable.GetItem(EquipSlots.RightArm);
+            var lArm = playerEntity.ItemEquipTable.GetItem(EquipSlots.LeftArm);
+            var chest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestArmor);
+            var legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsArmor);
+            var head = playerEntity.ItemEquipTable.GetItem(EquipSlots.Head);
             int temp = 0;
+
+
+
+            if (chest != null)
+            {
+                switch (chest.NativeMaterialValue)
+                {
+                    case (int)ArmorMaterialTypes.Leather:
+                        temp += 1;
+                        break;
+                    case (int)ArmorMaterialTypes.Chain:
+                        temp += 2;
+                        break;
+                    default:
+                        temp += 5;
+                        break;
+                }
+            }
+
+            if (legs != null)
+            {
+                switch (legs.NativeMaterialValue)
+                {
+                    case (int)ArmorMaterialTypes.Leather:
+                        temp += 1;
+                        break;
+                    case (int)ArmorMaterialTypes.Chain:
+                        temp += 2;
+                        break;
+                    default:
+                        temp += 4;
+                        break;
+                }
+            }
 
             if (lArm != null)
             {
-                temp += 1;
+                switch (lArm.NativeMaterialValue)
+                {
+                    case (int)ArmorMaterialTypes.Leather:
+                        temp += 1;
+                        break;
+                    case (int)ArmorMaterialTypes.Chain:
+                        temp += 1;
+                        break;
+                    default:
+                        temp += 2;
+                        break;
+                }
+
             }
             if (rArm != null)
             {
-                temp += 1;
+                switch (rArm.NativeMaterialValue)
+                {
+                    case (int)ArmorMaterialTypes.Leather:
+                        temp += 1;
+                        break;
+                    case (int)ArmorMaterialTypes.Chain:
+                        temp += 1;
+                        break;
+                    default:
+                        temp += 2;
+                        break;
+                }
             }
-            if (chest != null)
-            {
-                temp += 3;
-            }
-            if (legs != null)
-            {
-                temp += 2;
-            }
+
+
             if (head != null)
             {
-                temp += 1;
+                switch (head.NativeMaterialValue)
+                {
+                    case (int)ArmorMaterialTypes.Leather:
+                        temp += 1;
+                        break;
+                    case (int)ArmorMaterialTypes.Chain:
+                        temp += 1;
+                        break;
+                    default:
+                        temp += 2;
+                        break;
+                }
             }
-            //This code is to lower armor temperature if you cover it with a cloak.
-            //The armor temp will be multiplied by heat (see TemperatureEffects_OnNewMagicRound)
-            if (cloak1 != null || cloak2 != null)
-            {
-                temp /= 2;
-            }
+
+
             return temp;
         }
 
@@ -605,6 +685,20 @@ namespace ClimateCloaks
             }
         }
 
+        static bool CloakSwitch()
+        {
+            var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
+            var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
+
+            if (cloak1 != null || cloak2 != null)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
         static int DungeonTemp(int temp)
         {
@@ -707,6 +801,67 @@ namespace ClimateCloaks
                 else if (natTemp < -10)
                 {
                     tempText = "The weather is nice and cool.";
+                }
+            }
+            return tempText;
+        }
+
+        static string DngTemp(int natTemp)
+        {
+            string tempText = "The air is temperate.";
+
+            if (natTemp > 2)
+            {
+                if (natTemp > 60)
+                {
+                    tempText = "You feel as though you are trapped in an oven.";
+                }
+                else if (natTemp > 50)
+                {
+                    tempText = "The air is so warm it is suffocating.";
+                }
+                else if (natTemp > 40)
+                {
+                    tempText = "The heat in here is awful.";
+                }
+                else if (natTemp > 30)
+                {
+                    tempText = "The air in here is swelteringly hot.";
+                }
+                else if (natTemp > 20)
+                {
+                    tempText = "The air in here is very warm.";
+                }
+                else if (natTemp > 10)
+                {
+                    tempText = "The air in this place is stuffy and warm.";
+                }
+            }
+            else if (natTemp < -3)
+            {
+                if (natTemp < -60)
+                {
+                    tempText = "You feel as though you are trapped in a glacier.";
+                }
+                else if (natTemp < -50)
+                {
+                    tempText = "This place is as cold as ice.";
+                }
+                else if (natTemp < -40)
+                {
+                    tempText = "The cold is unrelenting.";
+                }
+                else if (natTemp < -30)
+                {
+                    tempText = "The air in here is freezing.";
+                }
+                else if (natTemp < -20)
+                {
+                    tempText = "The air in here is very cold.";
+                }
+                else if (natTemp < -10)
+                {
+                    tempText = "The air in here is chilly.";
                 }
             }
             return tempText;
