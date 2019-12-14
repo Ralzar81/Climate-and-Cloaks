@@ -4,6 +4,7 @@ using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.MagicAndEffects;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
+using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
 using UnityEngine;
 using DaggerfallWorkshop;
 using DaggerfallConnect.Arena2;
@@ -15,7 +16,6 @@ namespace ClimateCloaks
     public class ClimateCloaks : MonoBehaviour
     {
         static Mod mod;
-        public bool check = false;
 
         //[Invoke(StateManager.StateTypes.Start, 0)]
         [Invoke(StateManager.StateTypes.Game, 0)]
@@ -25,8 +25,69 @@ namespace ClimateCloaks
             var go = new GameObject(mod.Title);
             go.AddComponent<ClimateCloaks>();
             EntityEffectBroker.OnNewMagicRound += TemperatureEffects_OnNewMagicRound;
+            
+        }
+
+
+
+        static bool armorSun = false;
+        static bool armorSunHalf = false;
+        static bool statusLookUp = false;
+        static bool statusInterval = true;
+        static bool nudePen = true;
+        static bool fatPen = true;
+        static bool feetPen = true;
+        static bool dungTemp = true;
+
+
+        void Awake()
+        {
+            ModSettings settings = mod.GetSettings();
+
+            int armorSunValue = settings.GetValue<int>("Features", "armorSunHeat");
+            if (armorSunValue == 0)
+            {
+                armorSun = false;
+            }
+            else if (armorSunValue == 1)
+            {
+                armorSunHalf = true;
+            }
+
+
+            int statusTextValue = settings.GetValue<int>("Features", "statusText");
+            if (statusTextValue == 1)
+            {
+                statusLookUp = true;
+                statusInterval = false;
+            }
+            else if (statusTextValue == 2)
+            {
+                statusLookUp = true;
+            }
+
+            bool nudePenSet = settings.GetBool("Features", "damageWhenNude");
+            bool feetPenSet = settings.GetBool("Features", "damageWhenBareFooted");
+            bool fatPenSet = settings.GetBool("Features", "DamageWhen 0Fatigue");
+            bool dungTempSet = settings.GetBool("Features", "TemperatureEffectsInDungeons");
+
+            if (!nudePenSet) { nudePen = false; }
+            if (!feetPenSet) { feetPen = false; }
+            if (!fatPenSet) { fatPen = false; }
+            if (!dungTempSet) { dungTemp = false; }
+
             mod.IsReady = true;
         }
+
+
+
+
+
+
+
+
+
+
 
         static int counter = 0;
         static int counterDmg = 0;
@@ -39,13 +100,17 @@ namespace ClimateCloaks
         private static void TemperatureEffects_OnNewMagicRound()
         {
 
+
+
             //Checks that player is awake, in control, not dead, not fast traveling etc and not inside a building.
             if (playerEntity.CurrentHealth > 0
-                && !playerEntity.IsResting && !DaggerfallUI.Instance.FadeBehaviour.FadeInProgress
-                //(playerEntity.IsResting || !DaggerfallUI.Instance.FadeBehaviour.FadeInProgress) For mod effect while sleeping.
+                && !playerEntity.IsResting
+                && !DaggerfallUI.Instance.FadeBehaviour.FadeInProgress
+                //(playerEntity.IsResting || !DaggerfallUI.Instance.FadeBehaviour.FadeInProgress) For making the mod run while sleeping.
                 && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
                 && !playerEnterExit.IsPlayerInsideBuilding
-                && !GameManager.IsGamePaused)
+                && !GameManager.IsGamePaused
+                && ((dungTemp && playerEnterExit.IsPlayerInsideDungeon) || !playerEnterExit.IsPlayerInsideDungeon))
             {
                 int raceTemp = RaceTemp();
                 int climateTemp = DungeonTemp(ClimateTemp());
@@ -61,15 +126,15 @@ namespace ClimateCloaks
                 string dngTemp = DngTemp(resNatTempEffect);
                 int armorTemp = ArmorTemp();
 
-
                 //Increases armorTemp exponentially during the day.
-                if (DaggerfallUnity.Instance.WorldTime.Now.IsDay && !playerEnterExit.IsPlayerInsideDungeon && cloakOn != true)
+                if (armorSun && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !playerEnterExit.IsPlayerInsideDungeon && cloakOn != true)
                 {
                     armorTemp *= Mathf.Max(1, natTempEffect / 20);
+                    if (armorSunHalf) { armorTemp /= 2; }
                 }
 
                 //To counter a bug where you have 0 Stamina with no averse effects.
-                if (playerEntity.CurrentFatigue == 0)
+                if (fatPen && playerEntity.CurrentFatigue == 0)
                 { playerEntity.DecreaseHealth(2); }
 
                 //If feet are bare it is too hot ot cold, you take damage.
@@ -79,7 +144,8 @@ namespace ClimateCloaks
                 if (playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null
                     && (resNatTempAbs > endBonus)
                     && (playerEntity.RaceTemplate.ID != 7 || playerEntity.RaceTemplate.ID != 8)
-                    && GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot)
+                    && GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot
+                    && feetPen)
                 {
                     DaggerfallUI.AddHUDText("Your bare feet are hurting.");
                     playerEntity.DecreaseHealth(1);
@@ -96,6 +162,7 @@ namespace ClimateCloaks
                 {
                     if (!playerEnterExit.IsPlayerInsideDungeon) { DaggerfallUI.SetMidScreenText(skyTemp); }
                     else { DaggerfallUI.SetMidScreenText(dngTemp); }
+                    if (statusLookUp) { DaggerfallUI.AddHUDText(TempText(temperatureEffect)); }
                 }
 
                 //Start of the lowest level of effects. 
@@ -111,7 +178,10 @@ namespace ClimateCloaks
                         counter = 0;
 
                         //Displays text informing player how /warm/cold he feels.
-                        DaggerfallUI.AddHUDText(TempText(temperatureEffect));
+                        if (statusInterval)
+                        {
+                            DaggerfallUI.AddHUDText(TempText(temperatureEffect));
+                        }
 
                         //Checks if character is naked in hot day or cold night/day. 
                         //The Naked() method returns False if you are argonian or khajiit.
@@ -202,6 +272,8 @@ namespace ClimateCloaks
 
         static int ClimateTemp()
         {
+
+
             switch (playerGPS.CurrentClimateIndex)
             {
                 case (int)MapsFile.Climates.Desert2:
@@ -532,7 +604,6 @@ namespace ClimateCloaks
             int temp = 0;
 
 
-
             if (chest != null)
             {
                 switch (chest.NativeMaterialValue)
@@ -675,6 +746,10 @@ namespace ClimateCloaks
             var aChest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestArmor);
             var aLegs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsArmor);
 
+            if (!nudePen)
+            {
+                return false;
+            }
             if (chest == null && legs == null && aChest == null && aLegs == null && playerEntity.RaceTemplate.ID != 7 && playerEntity.RaceTemplate.ID != 8)
             {
                 return true;
