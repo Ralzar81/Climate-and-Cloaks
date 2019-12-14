@@ -1,0 +1,65 @@
+{
+    "Version": "1.0",
+    "Sections": [
+        {
+            "Name": "Features",
+            "Description": "Enable or disable the optional modules contained in this mod",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Options": [
+                    "None",
+                    "Half",
+                    "Full"
+                    ],
+                    "Value": 2,
+                    "Name": "armorSunHeat",
+                    "Description": "Sun heats up armor.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                    "At intervals",
+                    "When looking up",
+                    "At intervals and when looking up"
+                    ],
+                    "Value": 0,
+                    "Name": "statusText",
+                    "Description": "Character temperature displays:",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "damageWhenNude",
+                    "Description": "Take sunburn and frostbite damage when nude.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                                {
+                    "Value": true,
+                    "Name": "damageWhenBareFooted",
+                    "Description": "Take damage from bare feet in extreme temperatures.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                                {
+                    "Value": true,
+                    "Name": "DamageWhen 0Fatigue",
+                    "Description": "Take damage if you are at 0 Fatigue and still walking about.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                                {
+                    "Value": true,
+                    "Name": "TemperatureEffectsInDungeons",
+                    "Description": "Mod effects active (though reduced) inside dungeons.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+            ],
+            "$version": "v1"
+        }
+    ]
+}
