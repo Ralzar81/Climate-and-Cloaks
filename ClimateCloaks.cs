@@ -38,6 +38,7 @@ namespace ClimateCloaks
         static bool fatPen = true;
         static bool feetPen = true;
         static bool dungTemp = true;
+        static bool wetPen = true;
 
 
         void Awake()
@@ -67,14 +68,16 @@ namespace ClimateCloaks
             }
 
             bool nudePenSet = settings.GetBool("Features", "damageWhenNude");
-            bool feetPenSet = settings.GetBool("Features", "damageWhenBareFooted");
+            bool feetPenSet = settings.GetBool("Features", "damageWhenBareFoot");
             bool fatPenSet = settings.GetBool("Features", "DamageWhen 0Fatigue");
             bool dungTempSet = settings.GetBool("Features", "TemperatureEffectsInDungeons");
+            bool wetPenSet = settings.GetBool("Features", "WetFromSwimmingAndRain");
 
             if (!nudePenSet) { nudePen = false; }
             if (!feetPenSet) { feetPen = false; }
             if (!fatPenSet) { fatPen = false; }
             if (!dungTempSet) { dungTemp = false; }
+            if (!wetPenSet) { wetPen = false; }
 
             mod.IsReady = true;
         }
@@ -89,9 +92,11 @@ namespace ClimateCloaks
 
 
 
-        static int counter = 0;
+        static int counterTxt = 0;
         static int counterDmg = 0;
-        static int counterDebuff = 0;     
+        static int counterDebuff = 0;
+        static int counterWet = 0;
+        static int counterWetTxt = 0;
         static PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
         static PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
         static PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
@@ -99,10 +104,6 @@ namespace ClimateCloaks
 
         private static void TemperatureEffects_OnNewMagicRound()
         {
-
-
-
-            //Checks that player is awake, in control, not dead, not fast traveling etc and not inside a building.
             if (playerEntity.CurrentHealth > 0
                 && !playerEntity.IsResting
                 && !DaggerfallUI.Instance.FadeBehaviour.FadeInProgress
@@ -124,18 +125,64 @@ namespace ClimateCloaks
                 int resNatTempEffect = ResistTemp(natTempEffect);
                 string skyTemp = SkyTemp(resNatTempEffect);
                 string dngTemp = DngTemp(resNatTempEffect);
+                string wetText = "You are a bit damp.";
                 int armorTemp = ArmorTemp();
-
+                bool playerOnExteriorWater = (GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.Swimming || GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.WaterWalking);
                 //Increases armorTemp exponentially during the day.
-                if (armorSun && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !playerEnterExit.IsPlayerInsideDungeon && cloakOn != true)
+                if (armorSun && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !playerEnterExit.IsPlayerInsideDungeon && cloakOn)
                 {
                     armorTemp *= Mathf.Max(1, natTempEffect / 20);
                     if (armorSunHalf) { armorTemp /= 2; }
                 }
+                if (GameManager.Instance.PlayerMotor.IsSwimming && wetPen)
+                {
+                    counterWet = 300;
+                    if (counterWetTxt == 0) { DaggerfallUI.AddHUDText("The water engulfs you."); }
+                    Debug.Log("IsSwimming counterWet = " + counterWet.ToString());
+                }
+                if (playerOnExteriorWater && wetPen)
+                {
+                    counterWet += 20;
+                    if (counterWetTxt == 0 && counterWet < 100) { DaggerfallUI.AddHUDText("You are getting soaked."); }
+                    Debug.Log("IsWading counterWet = " + counterWet.ToString());
+                }
 
+                if ( counterWet > 0 && wetPen )
+                {                                        
+                    clothingTemp = 0;
+                    armorTemp = 0;
+
+
+                    Debug.Log("counterWet " + counterWet.ToString());
+
+                    if (counterWet > 300) { counterWet = 300; }                   
+                    natTempEffect -= (counterWet / 10);
+                    counterWet--;
+                    if (natTempEffect > 10)
+                    {
+                        counterWet -= (natTempEffect / 10);
+                        counterWet = Mathf.Max(counterWet, 0);
+                    }
+
+                    
+                    if (GameManager.Instance.PlayerMotor.IsSwimming) { wetText = ""; }
+                    else if (counterWet > 100 ) { wetText = "You are soaking wet."; }
+                    else if (counterWet > 50 ) { wetText = "You are wet."; }
+                    else if (counterWet > 20) { wetText = "You are somewhat wet."; }
+
+                    counterWetTxt++;
+                    Debug.Log("counterWetTxt " + counterWetTxt.ToString());
+                    if (counterWetTxt > 5)
+                    {
+                        counterWetTxt = 0;
+                        DaggerfallUI.AddHUDText(wetText);
+                    }                   
+                }
                 //To counter a bug where you have 0 Stamina with no averse effects.
                 if (fatPen && playerEntity.CurrentFatigue == 0)
-                { playerEntity.DecreaseHealth(2); }
+                {
+                    playerEntity.DecreaseHealth(2);
+                }
 
                 //If feet are bare it is too hot ot cold, you take damage.
                 //Does not affect Argonians and Khajiit.
@@ -150,6 +197,10 @@ namespace ClimateCloaks
                     DaggerfallUI.AddHUDText("Your bare feet are hurting.");
                     playerEntity.DecreaseHealth(1);
                 }
+                if (natTempEffect >= 40 && cloakOn)
+                {
+                    natTempEffect -= (natTempEffect - 35) / 2;
+                }
 
                 int temperatureEffect = ResistTemp(natTempEffect + armorTemp + clothingTemp);
 
@@ -162,25 +213,38 @@ namespace ClimateCloaks
                 {
                     if (!playerEnterExit.IsPlayerInsideDungeon) { DaggerfallUI.SetMidScreenText(skyTemp); }
                     else { DaggerfallUI.SetMidScreenText(dngTemp); }
-                    if (statusLookUp) { DaggerfallUI.AddHUDText(TempText(temperatureEffect)); }
+                    if (statusLookUp)
+                    {
+                        DaggerfallUI.AddHUDText(TempText(temperatureEffect));
+                        if (counterWet > 0 && wetPen)
+                        {
+                            DaggerfallUI.AddHUDText(wetText);
+                            if (temperatureEffect < -10) { DaggerfallUI.AddHUDText("You should make camp and dry off."); }
+                        }
+                    }
                 }
 
                 //Start of the lowest level of effects. 
                 //This code need to know if it is working in positive (hot) 
                 //or negative (cold) numbers to display correct text to the player.
                 //Counter makes sure this triggers every 5th magicround.
+
                 if (temperatureEffect > 10 || temperatureEffect < -10)
                 {
-
-                    ++counter;
-                    if (counter > 5)
+                    counterTxt++;
+                    if (counterTxt > 5)
                     {
-                        counter = 0;
+                        counterTxt = 0;
 
                         //Displays text informing player how /warm/cold he feels.
                         if (statusInterval)
                         {
                             DaggerfallUI.AddHUDText(TempText(temperatureEffect));
+                            if (temperatureEffect < -10 && counterWet > 0 && wetPen && !GameManager.Instance.PlayerMotor.IsSwimming)
+                            {
+                                DaggerfallUI.AddHUDText("You should make camp and dry off.");
+                            }
+
                         }
 
                         //Checks if character is naked in hot day or cold night/day. 
@@ -253,10 +317,18 @@ namespace ClimateCloaks
                         }
                         else { counterDmg = 0; }
                     }
-                    else { counterDebuff = 0; }  
-                }               
+                    else { counterDebuff = 0; }
+                }
             }
-            else { counter = 0; counterDmg = 0; counterDebuff = 0; }
+            else
+            {
+                if (counterDmg > 0) { counterDmg--; }
+                if (counterDebuff > 0) { counterDebuff--; }
+                if (counterWet > 0) { counterWet -= 2; }
+                counterTxt = 0;
+                counterWetTxt = 0;
+                Debug.Log("Resting");
+            }
         }
         //The counter resets above is so if the player manages to cool off, the increasing negative effects will start from the
         //beginning next time the player gets too warm/cold.
@@ -372,26 +444,30 @@ namespace ClimateCloaks
                 bool isStorming = GameManager.Instance.WeatherManager.IsStorming;
                 bool isSnowing = GameManager.Instance.WeatherManager.IsSnowing;
 
-                if (cloakOn == true)
-                {
-                    temp += 15;
-                }
+
                 if (isRaining)
                 {
-                    temp -= 20;
+                    if (cloakOn) { temp -= 5; }
+                    else if (wetPen){ counterWet += 2; }
+                    else { temp -= 10; }
                 }
                 else if (isStorming)
                 {
-                    temp -= 25;
+                    if (cloakOn) { temp -= 10; counterWet += 1; }
+                    else if (wetPen) { counterWet += 3; }
+                    else { temp -= 15; }
                 }
                 else if (isSnowing)
                 {
-                    temp -= 18;
+                    if (cloakOn) { temp -= 5; }
+                    else if (wetPen) { counterWet += 1; }
+                    else { temp -= 10; }
                 }
                 else if (isOvercast)
                 {
                     temp -= 5;
                 }
+
             }
             return temp;
         }
@@ -417,8 +493,6 @@ namespace ClimateCloaks
 
             if (chestCloth != null)
             {
-                if (gender == Genders.Male)
-                {
                     switch (chestCloth.TemplateIndex)
                     {
                         case (int)MensClothing.Straps:
@@ -429,11 +503,19 @@ namespace ClimateCloaks
                         case (int)MensClothing.Challenger_Straps:
                         case (int)MensClothing.Eodoric:
                         case (int)MensClothing.Vest:
+                        case (int)WomensClothing.Brassier:
+                        case (int)WomensClothing.Formal_brassier:
+                        case (int)WomensClothing.Eodoric:
+                        case (int)WomensClothing.Formal_eodoric:
+                        case (int)WomensClothing.Vest:
                             chest = 1;
                             break;
                         case (int)MensClothing.Short_shirt_unchangeable:
                         case (int)MensClothing.Short_shirt:
                         case (int)MensClothing.Short_shirt_with_belt:
+                        case (int)WomensClothing.Short_shirt:
+                        case (int)WomensClothing.Short_shirt_belt:
+                        case (int)WomensClothing.Short_shirt_unchangeable:
                             chest = 5;
                             break;
                         case (int)MensClothing.Short_tunic:
@@ -443,40 +525,6 @@ namespace ClimateCloaks
                         case (int)MensClothing.Long_shirt:
                         case (int)MensClothing.Long_shirt_with_belt:
                         case (int)MensClothing.Long_shirt_unchangeable:
-                            chest = 8;
-                            break;
-                        case (int)MensClothing.Open_Tunic:
-                        case (int)MensClothing.Long_shirt_closed_top:
-                        case (int)MensClothing.Long_shirt_closed_top2:
-                        case (int)MensClothing.Kimono:
-                            chest = 10;
-                            break;
-                        case (int)MensClothing.Priest_robes:
-                        case (int)MensClothing.Anticlere_Surcoat:
-                        case (int)MensClothing.Formal_tunic:
-                        case (int)MensClothing.Reversible_tunic:                       
-                        case (int)MensClothing.Dwynnen_surcoat:
-                        case (int)MensClothing.Plain_robes:
-                            chest = 15;
-                            break;
-                    }
-                }
-                else
-                {
-                    switch (chestCloth.TemplateIndex)
-                    {
-                        case (int)WomensClothing.Brassier:
-                        case (int)WomensClothing.Formal_brassier:
-                        case (int)WomensClothing.Eodoric:
-                        case (int)WomensClothing.Formal_eodoric:
-                        case (int)WomensClothing.Vest:
-                            chest = 1;
-                            break;
-                        case (int)WomensClothing.Short_shirt:
-                        case (int)WomensClothing.Short_shirt_belt:
-                        case (int)WomensClothing.Short_shirt_unchangeable:
-                            chest = 5;
-                            break;
                         case (int)WomensClothing.Short_shirt_closed:
                         case (int)WomensClothing.Short_shirt_closed_belt:
                         case (int)WomensClothing.Long_shirt:
@@ -486,110 +534,107 @@ namespace ClimateCloaks
                         case (int)WomensClothing.Strapless_dress:
                             chest = 8;
                             break;
+                        case (int)MensClothing.Open_Tunic:
+                        case (int)MensClothing.Long_shirt_closed_top:
+                        case (int)MensClothing.Long_shirt_closed_top2:
+                        case (int)MensClothing.Kimono:
                         case (int)WomensClothing.Evening_gown:
                         case (int)WomensClothing.Casual_dress:
                         case (int)WomensClothing.Long_shirt_closed:
                         case (int)WomensClothing.Open_tunic:
-                            chest  = + 10;
+                            chest = 10;
                             break;
+                        case (int)MensClothing.Priest_robes:
+                        case (int)MensClothing.Anticlere_Surcoat:
+                        case (int)MensClothing.Formal_tunic:
+                        case (int)MensClothing.Reversible_tunic:                       
+                        case (int)MensClothing.Dwynnen_surcoat:
+                        case (int)MensClothing.Plain_robes:
                         case (int)WomensClothing.Priestess_robes:
                         case (int)WomensClothing.Plain_robes:
                         case (int)WomensClothing.Long_shirt_closed_belt:
                         case (int)WomensClothing.Day_gown:
                             chest = 15;
                             break;
-                    }
-                }
+                    }               
             }
             if (feetCloth != null)
             {
-                if (gender == Genders.Male)
+                switch (feetCloth.TemplateIndex)
                 {
-                    switch (feetCloth.TemplateIndex)
-                    {
-                        case (int)MensClothing.Sandals:
-                            feet = 0;
-                            break;
-                        case (int)MensClothing.Shoes:
-                            feet = 2;
-                            break;
-                        case (int)MensClothing.Tall_Boots:
-                        case (int)MensClothing.Boots:
-                            feet = 5;
-                            break;
-                    }
-                }
-                else
-                {
-                    switch (feetCloth.TemplateIndex)
-                    {
-                        case (int)WomensClothing.Sandals:
-                            feet = 0;
-                            break;
-                        case (int)WomensClothing.Shoes:
-                            feet = 2;
-                            break;
-                        case (int)WomensClothing.Tall_boots:
-                        case (int)WomensClothing.Boots:
-                            feet = 5;
-                            break;
-                    }
-                }
-
+                    case (int)MensClothing.Sandals:
+                    case (int)WomensClothing.Sandals:
+                        feet = 0;
+                        break;
+                    case (int)MensClothing.Shoes:
+                    case (int)WomensClothing.Shoes:
+                        feet = 2;
+                        break;
+                    case (int)MensClothing.Tall_Boots:
+                    case (int)MensClothing.Boots:
+                    case (int)WomensClothing.Tall_boots:
+                    case (int)WomensClothing.Boots:
+                        feet = 5;
+                        break;
+                }            
             }
             if (legsCloth != null)
             {
-                if (gender == Genders.Male)
+                switch (legsCloth.TemplateIndex)
                 {
-                    switch (legsCloth.TemplateIndex)
-                    {
-                        case (int)MensClothing.Loincloth:
-                        case (int)MensClothing.Wrap:
-                            legs = 1;
-                            break;
-                        case (int)MensClothing.Khajiit_suit:
-                            legs = 2;
-                            break;
-                        case (int)MensClothing.Short_skirt:
-                            legs = 4;
-                            break;
-                        case (int)MensClothing.Long_Skirt:
-                            legs = 8;
-                            break;
-                        case (int)MensClothing.Casual_pants:
-                        case (int)MensClothing.Breeches:
-                            legs = 10;
-                            break;
-                    }
-                }
-                else
+                    case (int)MensClothing.Loincloth:
+                    case (int)MensClothing.Wrap:
+                    case (int)WomensClothing.Loincloth:
+                    case (int)WomensClothing.Wrap:
+                        legs = 1;
+                        break;
+                    case (int)MensClothing.Khajiit_suit:
+                    case (int)WomensClothing.Khajiit_suit:
+                        legs = 2;
+                        break;
+                    case (int)MensClothing.Short_skirt:
+                    case (int)WomensClothing.Tights:
+                        legs = 4;
+                        break;
+                    case (int)MensClothing.Long_Skirt:
+                    case (int)WomensClothing.Long_skirt:
+                        legs = 8;
+                        break;
+                    case (int)MensClothing.Casual_pants:
+                    case (int)MensClothing.Breeches:
+                    case (int)WomensClothing.Casual_pants:
+                        legs = 10;
+                        break;
+                }               
+            }
+            if (cloak1 != null)
+            {
+                switch (cloak1.TemplateIndex)
                 {
-                    switch (legsCloth.TemplateIndex)
-                    {
-                        case (int)WomensClothing.Loincloth:
-                        case (int)WomensClothing.Wrap:
-                            legs = 1;
-                            break;
-                        case (int)WomensClothing.Khajiit_suit:
-                            legs = 2;
-                            break;
-                        case (int)WomensClothing.Tights:
-                            legs = 4;
-                            break;
-                        case (int)WomensClothing.Long_skirt:
-                            legs = 8;
-                            break;
-                        case (int)WomensClothing.Casual_pants:
-                            legs = 10;
-                            break;
-                    }
+                    case (int)MensClothing.Casual_cloak:
+                    case (int)WomensClothing.Casual_cloak:
+                        cloak += 5;
+                        break;
+                    case (int)MensClothing.Formal_cloak:
+                    case (int)WomensClothing.Formal_cloak:
+                        cloak += 15;
+                        break;
                 }
             }
-            if (cloakOn == true)
+            if (cloak2 != null)
             {
-                if (cloak1 != null && cloak2 != null) { cloak += 35; }
-                else { cloak += 15; }            
-            }           
+                switch (cloak2.TemplateIndex)
+                {
+                    case (int)MensClothing.Casual_cloak:
+                    case (int)WomensClothing.Casual_cloak:
+                        cloak += 5;
+                        break;
+                    case (int)MensClothing.Formal_cloak:
+                    case (int)WomensClothing.Formal_cloak:
+                        cloak += 15;
+                        break;
+                }
+            }
             temp = chest + feet + legs + cloak;
             return temp;  
         }
@@ -615,7 +660,7 @@ namespace ClimateCloaks
                         temp += 2;
                         break;
                     default:
-                        temp += 5;
+                        temp += 4;
                         break;
                 }
             }
@@ -631,7 +676,7 @@ namespace ClimateCloaks
                         temp += 2;
                         break;
                     default:
-                        temp += 4;
+                        temp += 3;
                         break;
                 }
             }
@@ -667,8 +712,6 @@ namespace ClimateCloaks
                         break;
                 }
             }
-
-
             if (head != null)
             {
                 switch (head.NativeMaterialValue)
@@ -691,26 +734,35 @@ namespace ClimateCloaks
 
         static int RaceTemp()
         {
+            int temp = -5;
             switch (playerEntity.RaceTemplate.ID)
-            {
+            {               
                 case (int)Races.Breton:
-                    return +5;
+                    temp += 5;
+                    break;
                 case (int)Races.Redguard:
-                    return -5;
+                    temp -= 5;
+                    break;
                 case (int)Races.Nord:
-                    return +5;
+                    temp += 10;
+                    break;
                 case (int)Races.DarkElf:
-                    return -5;
+                    temp -= 5;
+                    break;
                 case (int)Races.HighElf:
-                    return 0;
+                    temp += 0;
+                    break;
                 case (int)Races.WoodElf:
-                    return 0;
+                    temp += 0;
+                    break;
                 case (int)Races.Khajiit:
-                    return 0;
+                    temp -= 5;
+                    break;
                 case (int)Races.Argonian:
-                    return -10;
+                    temp -= 10;
+                    break;
             }
-            return 0;
+            return temp;
         }
 
 
@@ -786,35 +838,56 @@ namespace ClimateCloaks
 
         static string TempText(int temperatureEffect)
         {
+            int playerRace = playerEntity.RaceTemplate.ID;
             string tempText = "";
             if (temperatureEffect > 10)
             {
                 if (temperatureEffect > 50)
                 {
-                    tempText = "You feel like you are burning up!";
+                    if (playerRace == 8)
+                    { tempText = "Soon you will be... too warm... to move..."; }
+                    else
+                        tempText = "You feel like you are burning up!";
                 }
                 else if (temperatureEffect > 30)
                 {
-                    tempText = "Heat stroke is setting in...";
+                    if (playerRace == 8)
+                    { tempText = "The heat... is slowing you down..."; }
+                    else
+                        tempText = "You are getting dizzy from the heat...";
                 }
                 else if (temperatureEffect > 10)
                 {
-                    tempText = "It's too hot for you here...";
+                    if (playerRace == 7)
+                    { tempText = "You breathe quickly, trying to cool down..."; }
+                    else if (playerRace == 8)
+                    { tempText = "You are absorbing too much heat..."; }
+                    else
+                    tempText = "You wipe the sweat from your brow...";
                 }
             }
             if (temperatureEffect < -10)
             {
                 if (temperatureEffect < -50)
                 {
-                    tempText = "Your teeth are chattering uncontrollably!";
+                    if (playerRace == 8)
+                    { tempText = "Soon you will be... too cold... to move..."; }
+                    else
+                        tempText = "Your teeth are chattering uncontrollably!";
                 }
                 else if (temperatureEffect < -30)
                 {
-                    tempText = "It's miserably cold here...";
+                    if (playerRace == 8)
+                    { tempText = "The cold... is slowing you down..."; }
+                    else
+                        tempText = "The cold is seeping into your bones...";
                 }
                 else if (temperatureEffect < -10)
                 {
-                    tempText = "A chill rolls through you...";
+                    if (playerRace == 8)
+                    { tempText = "You are loosing too much heat..."; }
+                    else
+                        tempText = "You shiver from the cold...";
                 }
             }
             return tempText;
@@ -887,57 +960,21 @@ namespace ClimateCloaks
 
             if (natTemp > 2)
             {
-                if (natTemp > 60)
-                {
-                    tempText = "You feel as though you are trapped in an oven.";
-                }
-                else if (natTemp > 50)
-                {
-                    tempText = "The air is so warm it is suffocating.";
-                }
-                else if (natTemp > 40)
-                {
-                    tempText = "The heat in here is awful.";
-                }
-                else if (natTemp > 30)
-                {
-                    tempText = "The air in here is swelteringly hot.";
-                }
-                else if (natTemp > 20)
-                {
-                    tempText = "The air in here is very warm.";
-                }
-                else if (natTemp > 10)
-                {
-                    tempText = "The air in this place is stuffy and warm.";
-                }
+                     if (natTemp > 60){ tempText = "You feel as though you are trapped in an oven."; }
+                else if (natTemp > 50) { tempText = "The air is so warm it is suffocating."; }
+                else if (natTemp > 40) { tempText = "The heat in here is awful."; }
+                else if (natTemp > 30) { tempText = "The air in here is swelteringly hot."; }
+                else if (natTemp > 20) { tempText = "The air in here is very warm."; }
+                else if (natTemp > 10) { tempText = "The air in this place is stuffy and warm."; }
             }
             else if (natTemp < -3)
             {
-                if (natTemp < -60)
-                {
-                    tempText = "You feel as though you are trapped in a glacier.";
-                }
-                else if (natTemp < -50)
-                {
-                    tempText = "This place is as cold as ice.";
-                }
-                else if (natTemp < -40)
-                {
-                    tempText = "The cold is unrelenting.";
-                }
-                else if (natTemp < -30)
-                {
-                    tempText = "The air in here is freezing.";
-                }
-                else if (natTemp < -20)
-                {
-                    tempText = "The air in here is very cold.";
-                }
-                else if (natTemp < -10)
-                {
-                    tempText = "The air in here is chilly.";
-                }
+                     if (natTemp < -60) { tempText = "You feel as though you are trapped in a glacier."; }
+                else if (natTemp < -50) { tempText = "This place is as cold as ice."; }
+                else if (natTemp < -40) { tempText = "The cold is unrelenting."; }
+                else if (natTemp < -30) { tempText = "The air in here is freezing."; }
+                else if (natTemp < -20) { tempText = "The air in here is very cold."; }
+                else if (natTemp < -10) { tempText = "The air in here is chilly."; }
             }
             return tempText;
         }
