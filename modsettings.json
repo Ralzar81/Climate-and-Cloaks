@@ -5,7 +5,8 @@
             "Name": "Features",
             "Description": "Enable or disable the optional modules contained in this mod",
             "IsAdvanced": false,
-            "Keys": [
+            "Keys":
+            [
                 {
                     "Options": [
                     "None",
@@ -37,24 +38,31 @@
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
-                                {
+                {
                     "Value": true,
-                    "Name": "damageWhenBareFooted",
+                    "Name": "damageWhenBareFoot",
                     "Description": "Take damage from bare feet in extreme temperatures.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
-                                {
+                {
                     "Value": true,
                     "Name": "DamageWhen 0Fatigue",
                     "Description": "Take damage if you are at 0 Fatigue and still walking about.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
-                                {
+                {
                     "Value": true,
                     "Name": "TemperatureEffectsInDungeons",
                     "Description": "Mod effects active (though reduced) inside dungeons.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "WetFromSwimmingAndRain",
+                    "Description": "Swimming, wading and rain/snow makes you wet.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
