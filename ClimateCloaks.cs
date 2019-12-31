@@ -132,7 +132,7 @@ namespace ClimateCloaks
                 { playerEntity.DecreaseHealth(2); }
 
                 //Basic mod effect starts here at +/- 10+ by decreasing fatigue.
-                if (absTemp >= 10)
+                if (absTemp >= 10 && !playerEntity.IsInBeastForm)
                 {
                     int fatigueDmg = absTemp / 20;
                     if (playerRace.ID != (int)Races.Argonian)
@@ -171,9 +171,8 @@ namespace ClimateCloaks
                     NakedDmg(natTemp);
                     FeetDmg(natTemp);
                 }
-                if (statusInterval)
+                if (statusInterval && !playerEntity.IsInBeastForm)
                 {
-
                     if (txtCount > 5) { CharTxt(totalTemp);}
                 }
                 if (txtCount > 5) { txtCount = 0; }
@@ -194,6 +193,11 @@ namespace ClimateCloaks
         {
             int resFire = playerEntity.Resistances.LiveFire;
             int resFrost = playerEntity.Resistances.LiveFrost;
+            if (playerEntity.RaceTemplate.ID == (int)Races.Werewolf || playerEntity.RaceTemplate.ID == (int)Races.Wereboar)
+            {
+                resFrost += 10;
+                resFire += 10;
+            }
             if (temp < 0)
             {
                 if (playerEntity.RaceTemplate.CriticalWeaknessFlags == DFCareer.EffectFlags.Frost) { resFrost -= 50; }
@@ -598,6 +602,8 @@ namespace ClimateCloaks
         {
 
             Debug.Log("Calculating RaceTemp");
+
+ 
             switch (playerEntity.BirthRaceTemplate.ID)
             {
                 case (int)Races.Nord:
