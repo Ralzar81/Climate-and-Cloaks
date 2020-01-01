@@ -1,3 +1,8 @@
+// Project:         Climates & Cloaks mod for Daggerfall Unity (http://www.dfworkshop.net)
+// Copyright:       Copyright (C) 2019 Ralzar
+// License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
+// Author:          Ralzar
+
 using DaggerfallConnect;
 using DaggerfallWorkshop.Game;
 using DaggerfallWorkshop.Game.Entity;
@@ -132,7 +137,7 @@ namespace ClimateCloaks
                 { playerEntity.DecreaseHealth(2); }
 
                 //Basic mod effect starts here at +/- 10+ by decreasing fatigue.
-                if (absTemp >= 10 && !playerEntity.IsInBeastForm)
+                if (absTemp > 10 && !playerEntity.IsInBeastForm)
                 {
                     int fatigueDmg = absTemp / 20;
                     if (playerRace.ID != (int)Races.Argonian)
@@ -164,7 +169,7 @@ namespace ClimateCloaks
                     UpText(natTemp);
                     if (statusLookUp) { CharTxt(totalTemp);}                    
                 }
-                
+
                 //Apply damage for being naked or walking on foot.
                 if (playerRace.ID != (int)Races.Argonian && playerRace.ID != (int)Races.Khajiit)
                 {
@@ -197,6 +202,10 @@ namespace ClimateCloaks
             {
                 resFrost += 10;
                 resFire += 10;
+            }
+            else if (playerEntity.RaceTemplate.ID == (int)Races.Vampire)
+            {
+                resFrost += 25;
             }
             if (temp < 0)
             {
@@ -257,8 +266,7 @@ namespace ClimateCloaks
                     case (int)MensClothing.Long_shirt_closed_top:
                     case (int)MensClothing.Long_shirt_closed_top2:
                     case (int)WomensClothing.Vest:
-                    case (int)WomensClothing.Eodoric:
-                    case (int)WomensClothing.Formal_eodoric:
+                    case (int)WomensClothing.Eodoric:                    
                     case (int)WomensClothing.Short_shirt_closed:
                     case (int)WomensClothing.Short_shirt_closed_belt:
                     case (int)WomensClothing.Short_shirt_unchangeable:
@@ -276,10 +284,11 @@ namespace ClimateCloaks
                         cTop = true;
                         break;
                     case (int)MensClothing.Priest_robes:
+                    case (int)MensClothing.Plain_robes:
                     case (int)WomensClothing.Evening_gown:
                     case (int)WomensClothing.Casual_dress:
                     case (int)WomensClothing.Strapless_dress:
-                    case (int)MensClothing.Plain_robes:
+                    case (int)WomensClothing.Formal_eodoric:                    
                     case (int)WomensClothing.Priestess_robes:
                     case (int)WomensClothing.Plain_robes:
                     case (int)WomensClothing.Day_gown:
@@ -315,7 +324,7 @@ namespace ClimateCloaks
             if (!cTop || !cBottom)
             {
                 Debug.Log("Character is Naked");
-                if (playerEnterExit.IsPlayerInSunlight && temp > 10 && txtCount > 5)
+                if (playerEnterExit.IsPlayerInSunlight && temp >= 10 && txtCount > 5)
                 {
                     if (playerEntity.RaceTemplate.ID != (int)Races.DarkElf && playerEntity.RaceTemplate.ID != (int)Races.Redguard)
                     { if (temp > 30) { playerEntity.DecreaseHealth(1); } }
@@ -323,7 +332,7 @@ namespace ClimateCloaks
                     { playerEntity.DecreaseHealth(1); }
                     DaggerfallUI.AddHUDText("The sun burns your bare skin.");
                 }
-                else if (temp < -10)
+                else if (temp <= -10)
                 {
                     playerEntity.DecreaseHealth((temp + 10) / 10);
                     DaggerfallUI.AddHUDText("The cold air numbs your bare skin.");
@@ -426,7 +435,7 @@ namespace ClimateCloaks
 
                 if (isRaining)
                 {
-                    temp -= 5;
+                    temp -= 10;
                     if (wetPen)
                     {
                         if (Cloak() && HoodUp())
@@ -444,7 +453,7 @@ namespace ClimateCloaks
                 }
                 else if (isStorming)
                 {
-                    temp -= 10;
+                    temp -= 15;
                     if (wetPen)
                     {
                         if (Cloak() && HoodUp())
@@ -462,7 +471,7 @@ namespace ClimateCloaks
                 }
                 else if (isSnowing)
                 {
-                    temp -= 5;
+                    temp -= 10;
                     if (wetPen)
                     {
                         if (Cloak() && HoodUp())
@@ -480,7 +489,7 @@ namespace ClimateCloaks
                 }
                 else if (isOvercast)
                 {
-                    temp -= 5;
+                    temp -= 8;
                 }
                 else if (playerRace.ID == (int)Races.Vampire)
                 {
@@ -739,6 +748,7 @@ namespace ClimateCloaks
                     case (int)MensClothing.Short_skirt:
                     case (int)WomensClothing.Tights:
                     case (int)WomensClothing.Wrap:
+                    case (int)WomensClothing.Casual_pants:
                         legs = 4;
                         break;
                     case (int)MensClothing.Long_Skirt:
@@ -747,7 +757,6 @@ namespace ClimateCloaks
                         break;
                     case (int)MensClothing.Casual_pants:
                     case (int)MensClothing.Breeches:
-                    case (int)WomensClothing.Casual_pants:
                         legs = 10;
                         break;
                 }
@@ -849,10 +858,10 @@ namespace ClimateCloaks
                         temp += 1;
                         break;
                     case (int)ArmorMaterialTypes.Chain:
-                        temp += 2;
+                        temp += 1;
                         break;
                     default:
-                        temp += 4;
+                        temp += 3;
                         break;
                 }
             }
@@ -865,10 +874,10 @@ namespace ClimateCloaks
                         temp += 1;
                         break;
                     case (int)ArmorMaterialTypes.Chain:
-                        temp += 2;
+                        temp += 1;
                         break;
                     default:
-                        temp += 3;
+                        temp += 2;
                         break;
                 }
             }
@@ -909,10 +918,10 @@ namespace ClimateCloaks
                 switch (head.NativeMaterialValue)
                 {
                     case (int)ArmorMaterialTypes.Leather:
-                        temp += 1;
+                        temp += 2;
                         break;
                     case (int)ArmorMaterialTypes.Chain:
-                        temp += 1;
+                        temp += 2;
                         break;
                     default:
                         temp += 2;
@@ -1096,9 +1105,8 @@ namespace ClimateCloaks
 
         static private void WetTxt(int totalTemp)
         {
-            string wetString = "Test";
-            if (GameManager.Instance.PlayerMotor.IsSwimming) { wetString = "The water engulfs you."; }
-            else if (wetCount > 200) { wetString = "You are completely drenched."; }
+            string wetString = ""; 
+            if (wetCount > 200) { wetString = "You are completely drenched."; }
             else if (wetCount > 100) { wetString = "You are soaking wet."; }
             else if (wetCount > 50) { wetString = "You are quite wet."; }
             else if (wetCount > 20) { wetString = "You are somewhat wet."; }
