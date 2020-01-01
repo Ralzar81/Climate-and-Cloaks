@@ -324,15 +324,14 @@ namespace ClimateCloaks
             if (!cTop || !cBottom)
             {
                 Debug.Log("Character is Naked");
-                if (playerEnterExit.IsPlayerInSunlight && temp >= 10 && txtCount > 5)
+                if (playerEnterExit.IsPlayerInSunlight && temp > 10 && txtCount > 5)
                 {
-                    if (playerEntity.RaceTemplate.ID != (int)Races.DarkElf && playerEntity.RaceTemplate.ID != (int)Races.Redguard)
-                    { if (temp > 30) { playerEntity.DecreaseHealth(1); } }
+                    if (playerEntity.RaceTemplate.ID == (int)Races.DarkElf && playerEntity.RaceTemplate.ID == (int)Races.Redguard)
+                    { if (temp > 30) { playerEntity.DecreaseHealth(1); DaggerfallUI.AddHUDText("The sun burns your bare skin."); } }
                     else
-                    { playerEntity.DecreaseHealth(1); }
-                    DaggerfallUI.AddHUDText("The sun burns your bare skin.");
+                    { playerEntity.DecreaseHealth(1); DaggerfallUI.AddHUDText("The sun burns your bare skin."); }
                 }
-                else if (temp <= -10)
+                else if (temp < -10)
                 {
                     playerEntity.DecreaseHealth((temp + 10) / 10);
                     DaggerfallUI.AddHUDText("The cold air numbs your bare skin.");
@@ -344,7 +343,6 @@ namespace ClimateCloaks
         //If bare feet, may take damage from temperatures.
         static void FeetDmg(int natTemp)
         {
-            if (!feetPen) { return; }
             int endBonus = 5 + (playerEntity.Stats.LiveEndurance / 2);
             if (playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null
                && (natTemp > endBonus)
