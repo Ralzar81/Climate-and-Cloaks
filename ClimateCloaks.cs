@@ -38,18 +38,20 @@ namespace ClimateCloaks
         static bool armorSunHalf = false;
         static bool statusLookUp = false;
         static bool statusInterval = true;
+        static int txtIntervals = 5;
         static bool nudePen = true;
         static bool fatPen = true;
         static bool feetPen = true;
         static bool dungTemp = true;
         static bool wetPen = true;
+        static bool txtSeverity = false;
 
 
         void Awake()
         {
             ModSettings settings = mod.GetSettings();
 
-            int armorSunValue = settings.GetValue<int>("Features", "armorSunHeat");
+            int armorSunValue = settings.GetValue<int>("Features", "armorTemperature");
             if (armorSunValue == 0)
             {
                 armorSun = false;
@@ -71,25 +73,22 @@ namespace ClimateCloaks
             {
                 statusLookUp = true;
             }
-
-            bool nudePenSet = settings.GetBool("Features", "damageWhenNude");
-            bool feetPenSet = settings.GetBool("Features", "damageWhenBareFoot");
-            bool fatPenSet = settings.GetBool("Features", "DamageWhen 0Fatigue");
-            bool dungTempSet = settings.GetBool("Features", "TemperatureEffectsInDungeons");
-            bool wetPenSet = settings.GetBool("Features", "WetFromSwimmingAndRain");
-
-            if (!nudePenSet) { nudePen = false; }
-            if (!feetPenSet) { feetPen = false; }
-            if (!fatPenSet) { fatPen = false; }
-            if (!dungTempSet) { dungTemp = false; }
-            if (!wetPenSet) { wetPen = false; }
+            txtIntervals = settings.GetValue<int>("Features", "textIntervals") + 1;
+            nudePen = settings.GetBool("Features", "damageWhenNude");
+            feetPen = settings.GetBool("Features", "damageWhenBareFoot");
+            fatPen = settings.GetBool("Features", "DamageWhen 0Fatigue");
+            dungTemp = settings.GetBool("Features", "TemperatureEffectsInDungeons");
+            wetPen = settings.GetBool("Features", "WetFromSwimmingAndRain");
+            txtSeverity = settings.GetBool("Features", "informationSeverity");
 
             Debug.Log(
                 "C&C Settings: " +
                 "ArmSun " + armorSun.ToString() +
                 ", ArmSunHalf " + armorSunHalf.ToString() +
                 ", StatusUp " + statusLookUp.ToString() +
-                ", StatusInt" + statusInterval.ToString() +
+                ", StatusInt " + statusInterval.ToString() +
+                ", TextInterval " + txtIntervals.ToString() +
+                ", Text Severity " + txtSeverity.ToString() +
                 ", Nude" + nudePen.ToString() +
                 ", Feet" + feetPen.ToString() +
                 ", 0 Fatigue" + fatPen.ToString() +
@@ -117,7 +116,7 @@ namespace ClimateCloaks
         {
             int offSet = -5; //used to make small adjustments to the mod. Negative numbers makes the character freeze more easily.
             int natTemp = Resist(Climate() + Month() + Time() + Weather());
-            int charTemp = Resist(RaceTemp() + Clothes(natTemp) + Armor(natTemp) + offSet - Water(natTemp));
+            int charTemp = Resist(RaceTemp() + Clothes(natTemp) + Armor(natTemp) - Water(natTemp)) + offSet;
             int totalTemp = Dungeon(natTemp) + charTemp;
             int absTemp = Mathf.Abs(totalTemp);
             txtCount++;
@@ -129,7 +128,8 @@ namespace ClimateCloaks
                 && !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease
                 && !playerEnterExit.IsPlayerInsideBuilding
                 && !GameManager.IsGamePaused
-                && ((dungTemp && playerEnterExit.IsPlayerInsideDungeon) || !playerEnterExit.IsPlayerInsideDungeon))
+                && ((dungTemp && playerEnterExit.IsPlayerInsideDungeon) || !playerEnterExit.IsPlayerInsideDungeon)
+                && !playerEntity.IsInBeastForm)
             {
                 Debug.Log("C&C active round start");
                 //To counter a bug where you have 0 Stamina with no averse effects.
@@ -137,7 +137,7 @@ namespace ClimateCloaks
                 { playerEntity.DecreaseHealth(2); }
 
                 //Basic mod effect starts here at +/- 10+ by decreasing fatigue.
-                if (absTemp > 10 && !playerEntity.IsInBeastForm)
+                if (absTemp > 10)
                 {
                     int fatigueDmg = absTemp / 20;
                     if (playerRace.ID != (int)Races.Argonian)
@@ -176,17 +176,17 @@ namespace ClimateCloaks
                     NakedDmg(natTemp);
                     FeetDmg(natTemp);
                 }
-                if (statusInterval && !playerEntity.IsInBeastForm)
+                if (statusInterval)
                 {
-                    if (txtCount > 5) { CharTxt(totalTemp);}
+                    if (txtCount >= txtIntervals) { CharTxt(totalTemp);}
                 }
-                if (txtCount > 5) { txtCount = 0; }
+                if (txtCount >= txtIntervals) { txtCount = 0; }
                 Debug.Log("natTemp " + natTemp.ToString() + ", charTemp " + charTemp.ToString() + ", totalTemp " + totalTemp.ToString());
             }
             else
             {
                 //When inside a house, resting or traveling, counters start to reset.
-                txtCount = 4;
+                txtCount = txtIntervals;
                 wetCount = Mathf.Max(wetCount - 2, 0);
                 attCount = Mathf.Max(attCount - 2, 0);
             }
@@ -227,18 +227,18 @@ namespace ClimateCloaks
         }
 
         //If inside dungeon, the temperature effects is decreased.
-        static int Dungeon(int temp)
+        static int Dungeon(int natTemp)
         {
             if (playerEnterExit.IsPlayerInsideDungeon)
             {
-                temp /= 2;
+                natTemp /= 2;
                 Debug.Log("C&C Dungeon effect");
             }
-            return temp;
+            return natTemp;
         }
 
         //If naked, may take damage from temperatures.
-        static void NakedDmg(int temp)
+        static void NakedDmg(int natTemp)
         {
             if (!nudePen) { return; }
             var chest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
@@ -254,6 +254,8 @@ namespace ClimateCloaks
                 {
                     case (int)MensClothing.Short_tunic:
                     case (int)MensClothing.Toga:
+                    case (int)MensClothing.Short_shirt:
+                    case (int)MensClothing.Short_shirt_with_belt:
                     case (int)MensClothing.Short_shirt_closed_top:
                     case (int)MensClothing.Short_shirt_closed_top2:
                     case (int)MensClothing.Short_shirt_unchangeable:
@@ -266,7 +268,9 @@ namespace ClimateCloaks
                     case (int)MensClothing.Long_shirt_closed_top:
                     case (int)MensClothing.Long_shirt_closed_top2:
                     case (int)WomensClothing.Vest:
-                    case (int)WomensClothing.Eodoric:                    
+                    case (int)WomensClothing.Eodoric:
+                    case (int)WomensClothing.Short_shirt:
+                    case (int)WomensClothing.Short_shirt_belt:
                     case (int)WomensClothing.Short_shirt_closed:
                     case (int)WomensClothing.Short_shirt_closed_belt:
                     case (int)WomensClothing.Short_shirt_unchangeable:
@@ -323,18 +327,22 @@ namespace ClimateCloaks
             if (aLegs != null) { cBottom = true; }
             if (!cTop || !cBottom)
             {
-                Debug.Log("Character is Naked");
-                if (playerEnterExit.IsPlayerInSunlight && temp > 10 && txtCount > 5)
+                if (!cTop) { Debug.Log("Character is Naked Top"); }
+                if (!cBottom) { Debug.Log("Character is Naked Bottom"); }
+                if (playerEnterExit.IsPlayerInSunlight && natTemp > 10)
                 {
                     if (playerEntity.RaceTemplate.ID == (int)Races.DarkElf && playerEntity.RaceTemplate.ID == (int)Races.Redguard)
-                    { if (temp > 30) { playerEntity.DecreaseHealth(1); DaggerfallUI.AddHUDText("The sun burns your bare skin."); } }
+                    { if (natTemp > 30) { playerEntity.DecreaseHealth(1); } }
                     else
-                    { playerEntity.DecreaseHealth(1); DaggerfallUI.AddHUDText("The sun burns your bare skin."); }
+                    { playerEntity.DecreaseHealth(1);}
+                    if (txtCount >= txtIntervals)
+                    { DaggerfallUI.AddHUDText("The sun burns your bare skin."); }
                 }
-                else if (temp < -10)
+                else if (natTemp < -10)
                 {
-                    playerEntity.DecreaseHealth((temp + 10) / 10);
-                    DaggerfallUI.AddHUDText("The cold air numbs your bare skin.");
+                    playerEntity.DecreaseHealth(1);
+                    if (txtCount >= txtIntervals)
+                    { DaggerfallUI.AddHUDText("The cold air numbs your bare skin."); }
                 }
             }
             else { Debug.Log("Character is not Naked"); }
@@ -345,13 +353,15 @@ namespace ClimateCloaks
         {
             int endBonus = 5 + (playerEntity.Stats.LiveEndurance / 2);
             if (playerEntity.ItemEquipTable.GetItem(EquipSlots.Feet) == null
-               && (natTemp > endBonus)
+               && (natTemp > endBonus || (endBonus * -1) < natTemp)
                && GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot
-               && txtCount > 5
                && feetPen)
             {
-                DaggerfallUI.AddHUDText("Your bare feet are hurting.");
                 playerEntity.DecreaseHealth(1);
+                if (natTemp > 0 && txtCount >= txtIntervals)
+                { DaggerfallUI.AddHUDText("Your bare feet are getting burned."); }
+                else if (txtCount >= txtIntervals)
+                { DaggerfallUI.AddHUDText("Your bare feet are freezing."); }               
             }
         }
 
@@ -614,7 +624,7 @@ namespace ClimateCloaks
             switch (playerEntity.BirthRaceTemplate.ID)
             {
                 case (int)Races.Nord:
-                    return 10;
+                    return 5;
                 case (int)Races.Breton:
                     return 5;
                 case (int)Races.HighElf:
@@ -847,6 +857,7 @@ namespace ClimateCloaks
             var legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsArmor);
             var head = playerEntity.ItemEquipTable.GetItem(EquipSlots.Head);
             int temp = 0;
+            int metal = 0;
 
             if (chest != null)
             {
@@ -857,9 +868,11 @@ namespace ClimateCloaks
                         break;
                     case (int)ArmorMaterialTypes.Chain:
                         temp += 1;
+                        metal += 1;
                         break;
                     default:
                         temp += 3;
+                        metal += 4;
                         break;
                 }
             }
@@ -873,9 +886,11 @@ namespace ClimateCloaks
                         break;
                     case (int)ArmorMaterialTypes.Chain:
                         temp += 1;
+                        metal += 1;
                         break;
                     default:
                         temp += 2;
+                        metal += 3;
                         break;
                 }
             }
@@ -892,6 +907,7 @@ namespace ClimateCloaks
                         break;
                     default:
                         temp += 2;
+                        metal += 1;
                         break;
                 }
 
@@ -908,6 +924,7 @@ namespace ClimateCloaks
                         break;
                     default:
                         temp += 2;
+                        metal += 1;
                         break;
                 }
             }
@@ -920,25 +937,30 @@ namespace ClimateCloaks
                         break;
                     case (int)ArmorMaterialTypes.Chain:
                         temp += 2;
+                        metal += 1;
                         break;
                     default:
                         temp += 2;
+                        metal += 1;
                         break;
                 }
             }
             if (armorSun)
             {
-                if (natTemp > 10 && playerEnterExit.IsPlayerInSunlight && !Cloak())
+
+                int metalTemp = (metal * natTemp) / 20;
+
+                if (armorSunHalf)
+                { metalTemp /= 2; }
+                if (metalTemp > 0 && playerEnterExit.IsPlayerInSunlight && !Cloak())
                 {
-                    temp *= (natTemp / 10);
-                    if (armorSunHalf && temp >= 20)
-                    { temp /= 2; }
+                    temp += metalTemp;
+                    if (txtCount > txtIntervals && metalTemp > 5) { DaggerfallUI.AddHUDText("Your armor is starting to heat up."); }
                 }
-                else if (natTemp < -10)
+                else if (metalTemp < 0)
                 {
-                    temp -= (natTemp / 10);
-                    if (armorSunHalf)
-                    { temp /= 2; }
+                    temp += metalTemp + 1;
+                    if (txtCount > txtIntervals && temp < 0) { DaggerfallUI.AddHUDText("Your armor is getting cold."); }
                 }
             }
             Debug.Log("Armor " + temp.ToString());
@@ -1021,7 +1043,7 @@ namespace ClimateCloaks
                     if (playerRace.ID == (int)Races.Argonian) { tempText = "The heat... is slowing you down..."; }
                     else tempText = "You are getting dizzy from the heat...";
                 }
-                else if (totalTemp > 10)
+                else if (totalTemp > 10 && !txtSeverity)
                 {
                     if (playerRace.ID == (int)Races.Khajiit) { tempText = "You breathe quickly, trying to cool down..."; }
                     else if (playerRace.ID == (int)Races.Argonian) { tempText = "You are absorbing too much heat..."; }
@@ -1037,12 +1059,12 @@ namespace ClimateCloaks
                 }
                 else if (totalTemp < -30)
                 {
-                    if (playerRace.ID == (int)Races.Argonian) { tempText = "The cold... is slowing you down..."; }
+                    if (playerRace.ID == (int)Races.Argonian) { tempText = "The cold... is slowing... you down..."; }
                     else tempText = "The cold is seeping into your bones...";
                 }
-                else if (totalTemp < -10)
+                else if (totalTemp < -10 && !txtSeverity)
                 {
-                    if (playerRace.ID == (int)Races.Argonian) { tempText = "You are loosing too much heat..."; }
+                    if (playerRace.ID == (int)Races.Argonian) { tempText = "You are losing too much heat..."; }
                     else tempText = "You shiver from the cold...";
                 }
             }
