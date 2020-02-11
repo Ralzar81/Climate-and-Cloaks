@@ -23,7 +23,8 @@
                     "Options": [
                     "At intervals",
                     "When looking up",
-                    "At intervals and when looking up"
+                    "At intervals and when looking up",
+                    "Off"
                     ],
                     "Value": 2,
                     "Name": "statusText",
@@ -40,13 +41,30 @@
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
                 },
-                                {
+                {
+                     "Options": [
+                    "Status (this will have a slight delay ingame)",
+                    "BACKSPACE",
+                    "Alpha 0",
+                    "Numpad 0",
+                    "TAB",
+                    "F1",
+                    "T"
+                    ],
+                    "Value": 0,
+                    "Name": "hotkeyForTemperatureStatus",
+                    "Description": "Set a hotkey for the information popup. Note: this will override any ingame bindings except if you use Status.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
                     "Value": false,
-                    "Name": "informationSeverity",
+                    "Name": "onlySevereEffectInformation",
                     "Description": "Only display temperature text when the effect is severe.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
+
                 {
                     "Value": true,
                     "Name": "damageWhenNude",
