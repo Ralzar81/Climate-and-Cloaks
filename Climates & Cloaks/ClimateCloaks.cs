@@ -93,9 +93,7 @@ namespace ClimateCloaks
         static bool wetPen = true;
         static bool txtSeverity = false;
         static bool clothDmg = true;
-
-        private KeyCode toggleKey = InputManager.Instance.GetBinding(InputManager.Actions.Status);
-        private bool toggleKeyStatus = true;
+        static bool toggleKeyStatus = true;
 
         void Awake()
         {
@@ -111,31 +109,7 @@ namespace ClimateCloaks
                 armorSunHalf = true;
             }
 
-            int statusTextValue = settings.GetValue<int>("Features", "hotkeyForTemperatureStatus");
-            if (statusTextValue == 0)
-            {
-                toggleKey = InputManager.Instance.GetBinding(InputManager.Actions.Status);
-                toggleKeyStatus = true;
-            }
-            else
-            {
-                toggleKeyStatus = false;
-                if (statusTextValue == 1)
-                { toggleKey = KeyCode.Backspace; }
-                else if (statusTextValue == 2)
-                { toggleKey = KeyCode.Alpha0; }
-                else if (statusTextValue == 3)
-                { toggleKey = KeyCode.Keypad0; }
-                else if (statusTextValue == 4)
-                { toggleKey = KeyCode.Tab; }
-                else if (statusTextValue == 5)
-                { toggleKey = KeyCode.F1; }
-                else if (statusTextValue == 6)
-                { toggleKey = KeyCode.T; }
-            }
-
-
-
+            int statusTextValue = settings.GetValue<int>("Features", "characterTemperatureText");
             if (statusTextValue == 1)
             {
                 statusLookUp = true;
@@ -151,10 +125,7 @@ namespace ClimateCloaks
                 statusInterval = false;
             }
 
-            int toggleKeySetting = settings.GetValue<int>("Features", "statusText");
-
-
-
+            toggleKeyStatus = settings.GetBool("Features", "temperatureStatus");
             txtIntervals = settings.GetValue<int>("Features", "textIntervals") + 1;
             nudePen = settings.GetBool("Features", "damageWhenNude");
             feetPen = settings.GetBool("Features", "damageWhenBareFoot");
@@ -188,9 +159,7 @@ namespace ClimateCloaks
         static private int txtCount = 4;
         static private int wetCount = 0;
         static private int attCount = 0;
-
-
-        static private bool lookingUp = false;
+     
 
         static PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
         static PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
@@ -200,7 +169,7 @@ namespace ClimateCloaks
 
 
         static private int offSet = -5; //used to make small adjustments to the mod. Negative numbers makes the character freeze more easily.
-        static private int baseNatTemp = Climate() + Month() + Time() + Weather();
+        static private int baseNatTemp = Climate() + Month() + DayNight() + Weather();
         static private int natTemp = Resist(baseNatTemp);
         static private int armorTemp = Armor(baseNatTemp);
         static private int charTemp = Resist(RaceTemp() + Clothes(baseNatTemp) + armorTemp - Water(natTemp)) + offSet;
@@ -210,31 +179,43 @@ namespace ClimateCloaks
         static private int absTemp = Mathf.Abs(totalTemp);
 
 
+        static private bool ccMessageBox = false;
+        static private float lastToggleTime = Time.unscaledTime;
+        static private float tickTimeInterval;
+        const float stdInterval = 0.5f;
+        static private KeyCode toggleKey = InputManager.Instance.GetBinding(InputManager.Actions.Status);
+        static private bool lookingUp = false;
+
+        void Start()
+        {
+
+            lastToggleTime = Time.unscaledTime;
+            tickTimeInterval = stdInterval;
+        }
+
+
         void Update()
         {
-            if (GameManager.Instance.StateManager.CurrentState == StateManager.StateTypes.Game)
-            {
                 if (GameManager.Instance.PlayerMouseLook.Pitch <= -70)
                 {
                     lookingUp = true;
                 }
 
-                if (Input.GetKeyDown(toggleKey))
-                {
-                    
 
-                    if (toggleKeyStatus)
-                    {
-                        EntityEffectBroker.OnNewMagicRound += ClimateCloaksPopup_OnNewMagicRound;
-                        Debug.Log("[Climates & Cloaks] +ClimateCloaksPopup_OnNewMagicRound");
-                    }
-                    else
-                    {
-                        string[] messages = new string[] { TxtClimate(), TxtClothing(), TxtAdvice() };
-                        StatusPopup(messages);
-                    }
+                if (toggleKeyStatus && Input.GetKeyDown(toggleKey))
+                {
+                    lastToggleTime = Time.unscaledTime;
+                    tickTimeInterval = stdInterval;
+                    ccMessageBox = true;
+                    Debug.Log("[Climates & Cloaks] ccMessageBox = " + ccMessageBox.ToString() + ", tickTimeInterval = " + tickTimeInterval.ToString() + ", lastToggleTime = " + lastToggleTime.ToString());
                 }
-            }
+                if (ccMessageBox && Time.unscaledTime > lastToggleTime + tickTimeInterval && !GameManager.IsGamePaused)
+                {
+                    ccMessageBox = false;
+                    Debug.Log("[Climates & CLoaks] Message Box");
+                    string[] messages = new string[] { TxtClimate(), TxtClothing(), TxtAdvice() };
+                    StatusPopup(messages);
+                }
         }
 
 
@@ -269,7 +250,7 @@ namespace ClimateCloaks
         {
             string clothTxt = "The way you are dressed provides no wramth";
             string wetTxt = ". ";
-            string armorTxt = " The armor you are wearing does not affect this.";
+            string armorTxt = " Your armor is comfortable.";
 
             if (wetCount > 0)
             {
@@ -336,7 +317,7 @@ namespace ClimateCloaks
             {
                 armorTxt = " Your armor is very hot.";
             }
-            else if (armorTemp > 10)
+            else if (armorTemp > 11)
             {
                 armorTxt = " Your armor is hot.";
             }
@@ -366,26 +347,52 @@ namespace ClimateCloaks
             bool isNight = DaggerfallUnity.Instance.WorldTime.Now.IsNight;
             bool isDesert = playerGPS.CurrentClimateIndex == (int)MapsFile.Climates.Desert || playerGPS.CurrentClimateIndex == (int)MapsFile.Climates.Desert2 || playerGPS.CurrentClimateIndex == (int)MapsFile.Climates.Subtropical;
             bool isMountain = playerGPS.CurrentClimateIndex == (int)MapsFile.Climates.Mountain || playerGPS.CurrentClimateIndex == (int)MapsFile.Climates.MountainWoods;
+            DaggerfallUnityItem cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
+            DaggerfallUnityItem cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
 
             string adviceTxt = "";
 
+
             if (totalTemp > -10 && totalTemp < 10)
             {
-                adviceTxt = "You are comfortable and do not feel the need to make any adjustments.";
+                adviceTxt = "You do not feel the need to make any adjustments.";
             }
             if (totalTemp < -10)
             {
-                if (wetCount > 0)
+                if (!Cloak() && isWeather)
+                {
+                    adviceTxt = "A cloak would protect you from getting wet.";
+                }
+                else if (isStorming && !HoodUp())
+                {
+                    adviceTxt = "The rain is soaking your head and running down your neck.";
+                }
+                else if (wetCount > 0)
                 {
                     adviceTxt = "Walking around cold and wet is hazardous to your health.";
                 }
-                else if (!Cloak() && isWeather)
+                else if (armorTemp < 0)
                 {
-                    adviceTxt = "A cloak would keep protect you from getting soaked.";
+                    adviceTxt = "The metal of your armor leeches the warmth form your body.";
                 }
                 else if (pureClothTemp < 30)
                 {
                     adviceTxt = "In weather like this, it is important to dress warm enough.";
+
+                    switch (cloak1.TemplateIndex)
+                    {
+                        case (int)MensClothing.Casual_cloak:
+                        case (int)WomensClothing.Casual_cloak:
+                            adviceTxt = "Your casual cloak offers little protection from this cold.";
+                            break;
+                    }
+                    switch (cloak2.TemplateIndex)
+                    {
+                        case (int)MensClothing.Casual_cloak:
+                        case (int)WomensClothing.Casual_cloak:
+                            adviceTxt = "Your casual cloak offers little protection from this cold.";
+                            break;
+                    }
                 }
                 else if (isNight)
                 {
@@ -398,9 +405,24 @@ namespace ClimateCloaks
             }
             else if (totalTemp > 10)
             {
-                if (!Cloak() && baseNatTemp > 30 && playerEnterExit.IsPlayerInSunlight)
+                if (armorTemp > 11 && playerEnterExit.IsPlayerInSunlight)
                 {
-                    adviceTxt = "The people of the deserts know to dress lightly and cover up in a light cloak.";
+                    if (Cloak() && !HoodUp())
+                    {
+                        adviceTxt = "The sun is heating up your armor, perhaps you should cover it.";
+                    }
+                    adviceTxt = "The sun is heating up your armor, perhaps you should cover it.";
+                }
+                else if (!Cloak() && baseNatTemp > 30 && playerEnterExit.IsPlayerInSunlight)
+                {
+                    if (Cloak() && !HoodUp())
+                    {
+                        adviceTxt = "The sun is beating down on your head.";
+                    }
+                    else
+                    {
+                        adviceTxt = "The people of the deserts know to dress lightly and cover up in a light cloak.";
+                    }
                 }
                 else if (pureClothTemp > 8)
                 {
@@ -416,15 +438,24 @@ namespace ClimateCloaks
                 }
             }
 
+            if (playerRace.ID == (int)Races.Vampire && playerEnterExit.IsPlayerInSunlight)
+            {
+                if (natTemp > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !HoodUp())
+                {
+                    if (Cloak() && !HoodUp())
+                    {
+                        adviceTxt = "The rays of the sun burns your face and neck!";
+                    }
+                    adviceTxt = "Your exposed skin sizzles in the deadly sunlight!";
+                }
+            }
 
-
-
-                return adviceTxt;
+            return adviceTxt;
         }
 
         public static string TxtClimate()
         {
-            string temperatureTxt = "comfertable ";
+            string temperatureTxt = "mild ";
             string weatherTxt = "";
             string seasonTxt = " summer";
             string timeTxt = " day in the ";
@@ -487,6 +518,10 @@ namespace ClimateCloaks
             {
                 weatherTxt = " and snowy";
             }
+            else if (playerEnterExit.IsPlayerInSunlight)
+            {
+                weatherTxt = " and sunny";
+            }
 
             switch (DaggerfallUnity.Instance.WorldTime.Now.SeasonValue)
             {
@@ -532,7 +567,14 @@ namespace ClimateCloaks
             }
 
 
-            if (baseNatTemp < -60 || baseNatTemp > 50)
+            if (playerRace.ID == (int)Races.Vampire && playerEnterExit.IsPlayerInSunlight)
+            {
+                if (natTemp > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !HoodUp())
+                {
+                    suitabilityTxt = " will burn you!";
+                }
+            }
+            else if (baseNatTemp < -60 || baseNatTemp > 50)
             {
                 suitabilityTxt = " will be the death of you.";
             }
@@ -540,15 +582,15 @@ namespace ClimateCloaks
             {
                 suitabilityTxt = " will wear you down.";
             }
-            else if (natCharTemp < -20 || baseNatTemp > 10)
+            else if (natCharTemp < -20)
             {
-                suitabilityTxt = " is uncomfertable for you.";
+                suitabilityTxt = " makes you shiver.";
+            }
+            else if (baseNatTemp > 10)
+            {
+                suitabilityTxt = " makes you sweat.";
             }
             Debug.Log("[Climates & Cloaks] baseNatTemp = " + baseNatTemp.ToString());
-
-
-
-
 
 
 
@@ -563,24 +605,6 @@ namespace ClimateCloaks
 
             return "This " + temperatureTxt.ToString() + weatherTxt.ToString() + seasonTxt.ToString() + timeTxt.ToString() + climateTxt.ToString() + suitabilityTxt.ToString();
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -611,10 +635,11 @@ namespace ClimateCloaks
                 && ((dungTemp && playerEnterExit.IsPlayerInsideDungeon) || !playerEnterExit.IsPlayerInsideDungeon)
                 && !playerEntity.IsInBeastForm)
             {
-                Debug.Log("C&C active round start");
-
+                Debug.Log("[Climates & Cloaks] active round start");
+                Debug.Log("[Climates & Cloaks] Unscaled Time = " + Time.unscaledTime.ToString());
+                Debug.Log("[Climates & Cloaks] Unscaled Time = " + Time.unscaledTime.ToString());
                 offSet = -5; //used to make small adjustments to the mod. Negative numbers makes the character freeze more easily.
-                baseNatTemp = Climate() + Month() + Time() + Weather();
+                baseNatTemp = Climate() + Month() + DayNight() + Weather();
                 natTemp = Resist(baseNatTemp);
                 armorTemp = Armor(baseNatTemp);
                 pureClothTemp = Clothes(natTemp);
@@ -622,8 +647,6 @@ namespace ClimateCloaks
                 natCharTemp = Resist(baseNatTemp + RaceTemp() + offSet);
                 totalTemp = Dungeon(natTemp) + charTemp;
                 absTemp = Mathf.Abs(totalTemp);
-
-
 
 
 
@@ -1020,9 +1043,9 @@ namespace ClimateCloaks
                 {
                     temp -= 8;
                 }
-                else if (playerRace.ID == (int)Races.Vampire)
+                else if (playerRace.ID == (int)Races.Vampire && playerEnterExit.IsPlayerInSunlight)
                 {
-                    int heat = Resist(Climate() + Month() + Time());
+                    int heat = Resist(Climate() + Month() + DayNight());
                     if (heat > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !HoodUp())
                     {
                         playerEntity.DecreaseHealth(heat / 5);
@@ -1032,7 +1055,7 @@ namespace ClimateCloaks
             return temp;
         }
 
-        static int Time()
+        static int DayNight()
         {
             Debug.Log("Calculating Time");
 
