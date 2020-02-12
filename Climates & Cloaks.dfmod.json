@@ -1,9 +1,9 @@
 {
     "ModTitle": "Climates & Cloaks",
-    "ModVersion": "1.0.2",
+    "ModVersion": "1.2.2",
     "ModAuthor": "Ralzar",
     "ContactInfo": "https://forums.dfworkshop.net/memberlist.php?mode=viewprofile&u=1922",
-    "DFUnity_Version": "0.10.17",
+    "DFUnity_Version": "0.10.19",
     "ModDescription": "Introduces temperature effects based on climates, seasons, weather, clothes etc.",
     "GUID": "7975b109-1381-485b-bdfd-8d076bb5d0c9",
     "Files": [
