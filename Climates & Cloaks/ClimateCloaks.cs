@@ -177,6 +177,8 @@ namespace ClimateCloaks
         static private int natCharTemp = Resist(baseNatTemp + RaceTemp()+ offSet);
         static private int totalTemp = Dungeon(natTemp) + charTemp;
         static private int absTemp = Mathf.Abs(totalTemp);
+        static private bool cloak = Cloak();
+        static private bool hood = HoodUp();
 
 
         static private bool ccMessageBox = false;
@@ -185,12 +187,14 @@ namespace ClimateCloaks
         const float stdInterval = 0.5f;
         static private KeyCode toggleKey = InputManager.Instance.GetBinding(InputManager.Actions.Status);
         static private bool lookingUp = false;
+        bool statusClosed = true;
 
         void Start()
         {
-
-            lastToggleTime = Time.unscaledTime;
-            tickTimeInterval = stdInterval;
+            DaggerfallUI.UIManager.OnWindowChange += UIManager_OnWindowChange;
+            //// Alternative Textbox code.
+            //lastToggleTime = Time.unscaledTime;
+            //tickTimeInterval = stdInterval;
         }
 
 
@@ -201,41 +205,80 @@ namespace ClimateCloaks
                     lookingUp = true;
                 }
 
-
-            if (!GameManager.IsGamePaused)
-            {
-                if (toggleKeyStatus && Input.GetKeyDown(toggleKey))
-                {
-                    lastToggleTime = Time.unscaledTime;
-                    tickTimeInterval = stdInterval;
-                    ccMessageBox = true;
-                    Debug.Log("[Climates & Cloaks] ccMessageBox = " + ccMessageBox.ToString() + ", tickTimeInterval = " + tickTimeInterval.ToString() + ", lastToggleTime = " + lastToggleTime.ToString());
-                }
-                if (ccMessageBox && Time.unscaledTime > lastToggleTime + tickTimeInterval)
-                {
-                    ccMessageBox = false;
-                    Debug.Log("[Climates & CLoaks] Message Box");
-                    string[] messages = new string[] { TxtClimate(), TxtClothing(), TxtAdvice() };
-                    StatusPopup(messages);
-                }
-            }
+            //// Alternative Textbox code.
+            //if (!GameManager.IsGamePaused)
+            //{
+            //    if (toggleKeyStatus && Input.GetKeyDown(toggleKey))
+            //    {
+            //        lastToggleTime = Time.unscaledTime;
+            //        tickTimeInterval = stdInterval;
+            //        ccMessageBox = true;
+            //        Debug.Log("[Climates & Cloaks] ccMessageBox = " + ccMessageBox.ToString() + ", tickTimeInterval = " + tickTimeInterval.ToString() + ", lastToggleTime = " + lastToggleTime.ToString());
+            //    }
+            //    if (ccMessageBox && Time.unscaledTime > lastToggleTime + tickTimeInterval)
+            //    {
+            //        ccMessageBox = false;
+            //        Debug.Log("[Climates & CLoaks] Message Box");
+            //        string[] messages = new string[] { TxtClimate(), TxtClothing(), TxtAdvice() };
+            //        StatusPopup(messages);
+            //    }
+            //}
         }
 
-        static DaggerfallMessageBox tempInfoBox;
 
-        public static void StatusPopup(string[] message)
+
+        private void UIManager_OnWindowChange(object sender, EventArgs e)
         {
-            if (tempInfoBox == null)
-            {
-                tempInfoBox = new DaggerfallMessageBox(DaggerfallUI.UIManager);
-                tempInfoBox.AllowCancel = true;
-                tempInfoBox.ClickAnywhereToClose = true;
-                tempInfoBox.ParentPanel.BackgroundColor = Color.clear;
-            }
+            if (DaggerfallUI.UIManager.WindowCount == 0)
+                statusClosed = true;
 
-            tempInfoBox.SetText(message);
-            DaggerfallUI.UIManager.PushWindow(tempInfoBox);
+            if (DaggerfallUI.UIManager.WindowCount == 2 && statusClosed)
+            {
+                DaggerfallMessageBox msgBox = DaggerfallUI.UIManager.TopWindow as DaggerfallMessageBox;
+                if (msgBox != null && msgBox.ExtraProceedBinding == InputManager.Instance.GetBinding(InputManager.Actions.Status))
+                {
+                    // Setup next status info box.
+                    DaggerfallMessageBox newBox = new DaggerfallMessageBox(DaggerfallUI.UIManager, msgBox);
+                    string[] messages = new string[] { TxtClimate(), TxtClothing(), TxtAdvice() };
+                    newBox.SetText(messages);
+                    newBox.ExtraProceedBinding = InputManager.Instance.GetBinding(InputManager.Actions.Status); // set proceed binding
+                    newBox.ClickAnywhereToClose = true;
+                    msgBox.AddNextMessageBox(newBox);
+                    statusClosed = false;
+                }
+            }
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //// Alternative Textbox code.
+        //static DaggerfallMessageBox tempInfoBox;
+        //public static void StatusPopup(string[] message)
+        //{
+        //    if (tempInfoBox == null)
+        //    {
+        //        tempInfoBox = new DaggerfallMessageBox(DaggerfallUI.UIManager);
+        //        tempInfoBox.AllowCancel = true;
+        //        tempInfoBox.ClickAnywhereToClose = true;
+        //        tempInfoBox.ParentPanel.BackgroundColor = Color.clear;
+        //    }
+
+        //    tempInfoBox.SetText(message);
+        //    DaggerfallUI.UIManager.PushWindow(tempInfoBox);
+        //}
 
 
 
@@ -289,26 +332,28 @@ namespace ClimateCloaks
                     temperatureTxt = "cool";
                 }
             }
-
-            if (isRaining)
+            if (!GameManager.Instance.IsPlayerInsideDungeon)
             {
-                weatherTxt = " and rainy";
-            }
-            else if (isStorming)
-            {
-                weatherTxt = " and stormy";
-            }
-            else if (isOvercast)
-            {
-                weatherTxt = " and foggy";
-            }
-            else if (isSnowing)
-            {
-                weatherTxt = " and snowy";
-            }
-            else if (playerEnterExit.IsPlayerInSunlight)
-            {
-                weatherTxt = " and sunny";
+                if (isRaining)
+                {
+                    weatherTxt = " and rainy";
+                }
+                else if (isStorming)
+                {
+                    weatherTxt = " and stormy";
+                }
+                else if (isOvercast)
+                {
+                    weatherTxt = " and foggy";
+                }
+                else if (isSnowing)
+                {
+                    weatherTxt = " and snowy";
+                }
+                else if (playerEnterExit.IsPlayerInSunlight)
+                {
+                    weatherTxt = " and sunny";
+                }
             }
 
             switch (DaggerfallUnity.Instance.WorldTime.Now.SeasonValue)
@@ -328,36 +373,50 @@ namespace ClimateCloaks
 
             if (DaggerfallUnity.Instance.WorldTime.Now.IsNight)
             {
-                timeTxt = " night in the ";
+                timeTxt = " night in";
             }
 
-            switch (climate)
+            //if (GameManager.Instance.IsPlayerInsideDungeon)
+            //{
+            //    switch (playerGPS.CurrentLocation.LocationIndex)
+            //    {
+            //        case (int)DFRegion.DungeonTypes.Crypt:
+
+            //            break;
+            //    }
+
+            //    climateTxt = dungeonType;
+            //}
+            else
             {
-                case (int)MapsFile.Climates.Desert2:
-                case (int)MapsFile.Climates.Desert:
-                    climateTxt = "desert";
-                    break;
-                case (int)MapsFile.Climates.Rainforest:
-                case (int)MapsFile.Climates.Subtropical:
-                    climateTxt = "tropics";
-                    break;
-                case (int)MapsFile.Climates.Swamp:
-                    climateTxt = "swamps";
-                    break;
-                case (int)MapsFile.Climates.Woodlands:
-                case (int)MapsFile.Climates.HauntedWoodlands:
-                    climateTxt = "woodlands";
-                    break;
-                case (int)MapsFile.Climates.MountainWoods:
-                case (int)MapsFile.Climates.Mountain:
-                    climateTxt = "mountains";
-                    break;
+                switch (climate)
+                {
+                    case (int)MapsFile.Climates.Desert2:
+                    case (int)MapsFile.Climates.Desert:
+                        climateTxt = "the desert";
+                        break;
+                    case (int)MapsFile.Climates.Rainforest:
+                    case (int)MapsFile.Climates.Subtropical:
+                        climateTxt = "the tropics";
+                        break;
+                    case (int)MapsFile.Climates.Swamp:
+                        climateTxt = "the swamps";
+                        break;
+                    case (int)MapsFile.Climates.Woodlands:
+                    case (int)MapsFile.Climates.HauntedWoodlands:
+                        climateTxt = "the woodlands";
+                        break;
+                    case (int)MapsFile.Climates.MountainWoods:
+                    case (int)MapsFile.Climates.Mountain:
+                        climateTxt = "the mountains";
+                        break;
+                }
             }
 
 
             if (playerRace.ID == (int)Races.Vampire && playerEnterExit.IsPlayerInSunlight)
             {
-                if (natTemp > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !HoodUp())
+                if (natTemp > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !hood)
                 {
                     suitabilityTxt = " will burn you!";
                 }
@@ -492,11 +551,11 @@ namespace ClimateCloaks
 
             if (totalTemp < -10)
             {
-                if (!Cloak() && isWeather)
+                if (!cloak && isWeather)
                 {
                     adviceTxt = "A cloak would protect you from getting wet.";
                 }
-                else if (isStorming && !HoodUp())
+                else if (isStorming && !hood)
                 {
                     adviceTxt = "The rain is soaking your head and running down your neck.";
                 }
@@ -548,11 +607,11 @@ namespace ClimateCloaks
                 {
                     adviceTxt = "The sun is heating up your armor, perhaps you should cover it.";
                 }
-                else if (!Cloak() && baseNatTemp > 30 && playerEnterExit.IsPlayerInSunlight)
+                else if (!cloak && baseNatTemp > 30 && playerEnterExit.IsPlayerInSunlight)
                 {
                     adviceTxt = "The people of the deserts know to dress lightly and cover up in a casual cloak.";
                 }
-                else if (Cloak() && !HoodUp() && baseNatTemp > 30 && playerEnterExit.IsPlayerInSunlight)
+                else if (cloak && !hood && baseNatTemp > 30 && playerEnterExit.IsPlayerInSunlight)
                 {
                     adviceTxt = "The sun is beating down on your unprotected head.";
                 }
@@ -576,9 +635,9 @@ namespace ClimateCloaks
 
             if (playerRace.ID == (int)Races.Vampire && playerEnterExit.IsPlayerInSunlight)
             {
-                if (natTemp > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !HoodUp())
+                if (natTemp > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !hood)
                 {
-                    if (Cloak() && !HoodUp())
+                    if (cloak && !hood)
                     {
                         adviceTxt = "The rays of the sun burns your face and neck!";
                     }
@@ -624,13 +683,19 @@ namespace ClimateCloaks
                 natCharTemp = Resist(baseNatTemp + RaceTemp() + offSet);
                 totalTemp = Dungeon(natTemp) + charTemp;
                 absTemp = Mathf.Abs(totalTemp);
+                cloak = Cloak();
+                hood = HoodUp();
 
 
 
                 txtCount++;
+
                 //To counter a bug where you have 0 Stamina with no averse effects.
                 if (fatPen && playerEntity.CurrentFatigue == 0)
                 { playerEntity.DecreaseHealth(2); }
+                //Attempt to fix this by pushing Fatigue up to 1, so the fainting code runs again.
+                if (playerEntity.CurrentFatigue <= 0)
+                { playerEntity.SetFatigue(1); }
 
                 //Basic mod effect starts here at +/- 10+ by decreasing fatigue.
                 if (absTemp > 10)
@@ -651,7 +716,7 @@ namespace ClimateCloaks
                         Debug.Log("C&C Attribute Debuffs");
                     }
                     else { attCount = 0; }
-                    //Temperature +/- 50+ and starts causing damage. 
+                    //Temperature +/- 50+ and starts causing damage.
                     if (absTemp > 50)
                     {
                         { playerEntity.DecreaseHealth((absTemp - 40) / 10); }
@@ -697,7 +762,10 @@ namespace ClimateCloaks
                 //Displays toptext at intervals
                 if (statusInterval)
                 {
-                    if (txtCount >= txtIntervals) { CharTxt(totalTemp);}
+                    if (txtCount >= txtIntervals && GameManager.Instance.IsPlayerOnHUD)
+                    {
+                        CharTxt(totalTemp);
+                    }
                 }
 
                 if (txtCount >= txtIntervals) { txtCount = 0; }
@@ -847,7 +915,7 @@ namespace ClimateCloaks
                         break;
                 }
             }
-            if (Cloak() || aChest != null) { cTop = true; }
+            if (cloak || aChest != null) { cTop = true; }
             if (aLegs != null) { cBottom = true; }
             if (!cTop || !cBottom)
             {
@@ -998,11 +1066,11 @@ namespace ClimateCloaks
                     temp -= 10;
                     if (wetPen)
                     {
-                        if (Cloak() && HoodUp())
+                        if (cloak && hood)
                         {
                             wetCount += 0;
                         }
-                        else if (Cloak() && !HoodUp())
+                        else if (cloak && !hood)
                         {
                             wetCount += 1;
                         }
@@ -1015,11 +1083,11 @@ namespace ClimateCloaks
                     temp -= 15;
                     if (wetPen)
                     {
-                        if (Cloak() && HoodUp())
+                        if (cloak && hood)
                         {
                             wetCount += 1;
                         }
-                        else if (Cloak() && !HoodUp())
+                        else if (cloak && !hood)
                         {
                             wetCount += 2;
                         }
@@ -1033,11 +1101,11 @@ namespace ClimateCloaks
                     temp -= 10;
                     if (wetPen)
                     {
-                        if (Cloak() && HoodUp())
+                        if (cloak && hood)
                         {
                             wetCount += 0;
                         }
-                        else if (Cloak() && !HoodUp())
+                        else if (cloak && hood)
                         {
                             wetCount += 1;
                         }
@@ -1052,7 +1120,7 @@ namespace ClimateCloaks
                 else if (playerRace.ID == (int)Races.Vampire && playerEnterExit.IsPlayerInSunlight)
                 {
                     int heat = Resist(Climate() + Month() + DayNight());
-                    if (heat > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !HoodUp())
+                    if (heat > 0 && DaggerfallUnity.Instance.WorldTime.Now.IsDay && !hood)
                     {
                         playerEntity.DecreaseHealth(heat / 5);
                     }
@@ -1121,7 +1189,7 @@ namespace ClimateCloaks
         static bool ArmorCovered()
         {
             DaggerfallUnityItem chestCloth = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
-            if (Cloak())
+            if (cloak)
             {
                 return true;
             }
@@ -1144,47 +1212,66 @@ namespace ClimateCloaks
 
         static bool HoodUp()
         {
-            Debug.Log("Checking Hood");
-            var cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
-            var cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
-
+            Debug.Log("[Climates & Cloaks]Checking Hood");
+            DaggerfallUnityItem cloak1 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak1);
+            DaggerfallUnityItem cloak2 = playerEntity.ItemEquipTable.GetItem(EquipSlots.Cloak2);
+            DaggerfallUnityItem chestCloth = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
+            bool up = false;
             if (cloak1 != null)
             {
+                Debug.Log("[Climates & Cloaks]Checking Hood for cloak 1");
                 switch (cloak1.CurrentVariant)
                 {
                     case 0:
-                        return false;
-                    case 1:
-                        return true;
-                    case 2:
-                        return true;
                     case 3:
-                        return false;
                     case 4:
-                        return false;
+                        up = false;
+                        break;
+                    case 1:
+                    case 2:
                     case 5:
-                        return true;
+                        up = true;
+                        break;
                 }
             }
             else if (cloak2 != null)
             {
+                Debug.Log("[Climates & Cloaks]Checking Hood for cloak 2");
                 switch (cloak2.CurrentVariant)
                 {
                     case 0:
-                        return false;
-                    case 1:
-                        return true;
-                    case 2:
-                        return true;
                     case 3:
-                        return false;
                     case 4:
-                        return false;
+                        up = false;
+                        break;
+                    case 1:
+                    case 2:
                     case 5:
-                        return true;
+                        up = true;
+                        break;
                 }
             }
-            return false;
+            else if (chestCloth != null)
+            {
+                Debug.Log("[Climates & Cloaks]Checking Hood for chestCloth");
+                switch (chestCloth.TemplateIndex)
+                {
+                    case (int)MensClothing.Plain_robes:
+                    case (int)WomensClothing.Plain_robes:
+                        switch (chestCloth.CurrentVariant)
+                        {
+                            case 0:
+                                up = true;
+                                break;
+                            case 1:
+                                up = true;
+                                break;
+                        }
+                        break;
+                }
+            }
+            Debug.Log("[Climates & Cloaks] HoodUp = " + up.ToString());
+            return up;
         }
 
         static void ClothDmg()
@@ -1206,7 +1293,7 @@ namespace ClimateCloaks
             DaggerfallUnityItem cloth = cloak2;
             DaggerfallUnityItem lArmor = chest;
 
-            if (Cloak())
+            if (cloak)
             {
                 Debug.Log("Cloth Damage = Cloak, " + "Roll = " + roll.ToString());
                 if (cloak2 == null ) { cloth = cloak1; }
@@ -1261,7 +1348,7 @@ namespace ClimateCloaks
             {
                 cloth.LowerCondition(1, playerEntity);
                 Debug.Log("Cloth Damage = " + cloth.ItemName.ToString());
-                if (GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot)
+                if (GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot && feetCloth != null)
                 {
                     feetCloth.LowerCondition(1, playerEntity);
                     if (feetCloth.currentCondition < (feetCloth.maxCondition / 10))
@@ -1518,10 +1605,17 @@ namespace ClimateCloaks
                         break;
                     case (int)MensClothing.Boots:
                     case (int)WomensClothing.Boots:
-                        feet = 0;
-                        feetInfo = "Tall Sandals";
-                        break;
-                        
+                        if (feetCloth.CurrentVariant == 0)
+                        {
+                            feet = 4;
+                            feetInfo = "Leather Boots";
+                        }
+                        else
+                        {
+                            feet = 0;
+                            feetInfo = "Tall Sandals";
+                        }
+                        break;                        
                 }
                 if (feet == 5) { feetInfo = "Armored Boots"; }
                 Debug.Log(feetInfo.ToString());
@@ -1635,7 +1729,7 @@ namespace ClimateCloaks
             Debug.Log("Clothes: Chest " + chest.ToString() + ", Legs " + legs.ToString() + ", Feet " + feet.ToString() + ", Cloak " + cloak.ToString());
             pureClothTemp = chest + feet + legs + cloak;
             temp = Mathf.Max(pureClothTemp - wetCount, 0);
-            if (natTemp > 30 && playerEnterExit.IsPlayerInSunlight && HoodUp())
+            if (natTemp > 30 && playerEnterExit.IsPlayerInSunlight && hood)
             { temp -= 10; }
             return temp;
         }
