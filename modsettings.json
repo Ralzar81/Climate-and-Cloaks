@@ -1,0 +1,105 @@
+{
+    "Version": "1.0",
+    "Sections": [
+        {
+            "Name": "Features",
+            "Description": "Enable or disable the optional modules contained in this mod",
+            "IsAdvanced": false,
+            "Keys":
+            [
+                {
+                    "Options": [
+                    "Deactivated",
+                    "Half Effect",
+                    "Full Effect"
+                    ],
+                    "Value": 2,
+                    "Name": "armorTemperature",
+                    "Description": "Metal armor is heated by the sun and cooled down by cold weather.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                    "At intervals",
+                    "When looking up",
+                    "At intervals and when looking up",
+                    "Off"
+                    ],
+                    "Value": 2,
+                    "Name": "characterTemperatureText",
+                    "Description": "Character temperature displays:",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 10,
+                    "Value": 5,
+                    "Name": "textIntervals",
+                    "Description": "How often does the temperature display?",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "temperatureStatus",
+                    "Description": "When you click the Status hotkey, you will also get a text box with information about the temperature.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": false,
+                    "Name": "onlySevereEffectInformation",
+                    "Description": "Only display temperature text when the effect is severe.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+
+                {
+                    "Value": true,
+                    "Name": "damageWhenNude",
+                    "Description": "Take sunburn and frostbite damage when nude.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "damageWhenBareFoot",
+                    "Description": "Take damage from bare feet in extreme temperatures.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "DamageWhen 0Fatigue",
+                    "Description": "Take damage if you are at 0 Fatigue and still walking about.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "TemperatureEffectsInDungeons",
+                    "Description": "Mod effects active (though reduced) inside dungeons.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "WetFromSwimmingAndRain",
+                    "Description": "Swimming, wading and rain/snow makes you wet.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                                {
+                    "Value": true,
+                    "Name": "ClothingAndArmorDamage",
+                    "Description": "Extreme temperatures may wear out clothes. Being wet may make armor rust.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+            ],
+            "$version": "v1"
+        }
+    ]
+}
