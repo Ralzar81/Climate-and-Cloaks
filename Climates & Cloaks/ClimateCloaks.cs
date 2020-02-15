@@ -376,17 +376,18 @@ namespace ClimateCloaks
                 timeTxt = " night in";
             }
 
-            //if (GameManager.Instance.IsPlayerInsideDungeon)
-            //{
-            //    switch (playerGPS.CurrentLocation.LocationIndex)
-            //    {
-            //        case (int)DFRegion.DungeonTypes.Crypt:
+            if (GameManager.Instance.IsPlayerInsideDungeon)
+            {
+                string dungeonType = "";
+                switch (playerGPS.CurrentLocation.LocationIndex)
+                {
+                    case (int)DFRegion.DungeonTypes.Crypt:
+                        dungeonType = "Crypt";
+                        break;
+                }
 
-            //            break;
-            //    }
-
-            //    climateTxt = dungeonType;
-            //}
+                climateTxt = dungeonType;
+            }
             else
             {
                 switch (climate)
