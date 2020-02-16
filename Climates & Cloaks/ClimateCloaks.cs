@@ -68,7 +68,6 @@ namespace ClimateCloaks
         static bool statusInterval = true;
         static int txtIntervals = 5;
         static bool nudePen = true;
-        static bool fatPen = true;
         static bool feetPen = true;
         static bool dungTemp = true;
         static bool wetPen = true;
@@ -129,7 +128,6 @@ namespace ClimateCloaks
             txtIntervals = settings.GetValue<int>("Features", "textIntervals") + 1;
             nudePen = settings.GetBool("Features", "damageWhenNude");
             feetPen = settings.GetBool("Features", "damageWhenBareFoot");
-            fatPen = settings.GetBool("Features", "DamageWhen 0Fatigue");
             dungTemp = settings.GetBool("Features", "TemperatureEffectsInDungeons");
             wetPen = settings.GetBool("Features", "WetFromSwimmingAndRain");
             txtSeverity = settings.GetBool("Features", "onlySevereEffectInformation");
@@ -145,7 +143,6 @@ namespace ClimateCloaks
                 ", Text Severity " + txtSeverity.ToString() +
                 ", Nude " + nudePen.ToString() +
                 ", Feet " + feetPen.ToString() +
-                ", 0 Fatigue " + fatPen.ToString() +
                 ", Dungeon " + dungTemp.ToString() +
                 ", Water " + wetPen.ToString() +
                 ", Clothing " + clothDmg.ToString() +
@@ -289,7 +286,7 @@ namespace ClimateCloaks
             string temperatureTxt = "mild ";
             string weatherTxt = "";
             string seasonTxt = " summer";
-            string timeTxt = " day in the ";
+            string timeTxt = " day in ";
             string climateTxt = "";
             string suitabilityTxt = " is suitable for you.";
 
@@ -373,20 +370,12 @@ namespace ClimateCloaks
 
             if (DaggerfallUnity.Instance.WorldTime.Now.IsNight)
             {
-                timeTxt = " night in";
+                timeTxt = " night in ";
             }
 
             if (GameManager.Instance.IsPlayerInsideDungeon)
             {
-                string dungeonType = "";
-                switch (playerGPS.CurrentLocation.LocationIndex)
-                {
-                    case (int)DFRegion.DungeonTypes.Crypt:
-                        dungeonType = "Crypt";
-                        break;
-                }
-
-                climateTxt = dungeonType;
+                climateTxt = "a dungeon";
             }
             else
             {
@@ -691,12 +680,7 @@ namespace ClimateCloaks
 
                 txtCount++;
 
-                //To counter a bug where you have 0 Stamina with no averse effects.
-                if (fatPen && playerEntity.CurrentFatigue == 0)
-                { playerEntity.DecreaseHealth(2); }
-                //Attempt to fix this by pushing Fatigue up to 1, so the fainting code runs again.
-                if (playerEntity.CurrentFatigue <= 0)
-                { playerEntity.SetFatigue(1); }
+
 
                 //Basic mod effect starts here at +/- 10+ by decreasing fatigue.
                 if (absTemp > 10)
@@ -770,6 +754,15 @@ namespace ClimateCloaks
                 }
 
                 if (txtCount >= txtIntervals) { txtCount = 0; }
+
+                //To counter a bug where you have 0 Stamina with no averse effects.
+                if (playerEntity.CurrentFatigue == 0)
+                {
+                    playerEntity.DecreaseHealth(2);
+                    DaggerfallUI.AddHUDText("You are exhausted and need to rest...");
+                }
+
+
                 Debug.Log("natTemp " + natTemp.ToString() + ", charTemp " + charTemp.ToString() + ", totalTemp " + totalTemp.ToString());
                 Debug.Log("C&C active round end.");
             }
@@ -834,10 +827,10 @@ namespace ClimateCloaks
         static void NakedDmg(int natTemp)
         {
             if (!nudePen) { return; }
-            var chest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
-            var legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
-            var aChest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestArmor);
-            var aLegs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsArmor);
+            DaggerfallUnityItem chest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestClothes);
+            DaggerfallUnityItem legs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsClothes);
+            DaggerfallUnityItem aChest = playerEntity.ItemEquipTable.GetItem(EquipSlots.ChestArmor);
+            DaggerfallUnityItem aLegs = playerEntity.ItemEquipTable.GetItem(EquipSlots.LegsArmor);
             bool cTop = false;
             bool cBottom = false;
 

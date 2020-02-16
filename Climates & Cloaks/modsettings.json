@@ -72,13 +72,6 @@
                 },
                 {
                     "Value": true,
-                    "Name": "DamageWhen 0Fatigue",
-                    "Description": "Take damage if you are at 0 Fatigue and still walking about.",
-                    "$version": "v1",
-                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
-                },
-                {
-                    "Value": true,
                     "Name": "TemperatureEffectsInDungeons",
                     "Description": "Mod effects active (though reduced) inside dungeons.",
                     "$version": "v1",
