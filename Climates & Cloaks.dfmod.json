@@ -8,8 +8,7 @@
     "GUID": "7975b109-1381-485b-bdfd-8d076bb5d0c9",
     "Files": [
         "Assets/Game/Mods/Climates & Cloaks/ClimateCloaks.cs",
-        "Assets/Game/Mods/Climates & Cloaks/modsettings.json",
-        "Assets/Game/Mods/Climates & Cloaks/ItemTemplates.json"
+        "Assets/Game/Mods/Climates & Cloaks/modsettings.json"
     ],
     "Contributes": null,
     "Dependencies": null
