@@ -61,14 +61,12 @@ namespace ClimateCloaks
             attCount = climateCloaksSaveData.AttCount;
         }
 
-
-        static bool armorSun = true;
-        static bool armorSunHalf = false;
         static bool statusLookUp = false;
         static bool statusInterval = true;
         static int txtIntervals = 5;
         static bool nudePen = true;
         static bool feetPen = true;
+        static bool metalHeatCool = true;
         //static bool dungTemp = true;
         static bool wetPen = true;
         static bool txtSeverity = false;
@@ -97,15 +95,7 @@ namespace ClimateCloaks
         {
             ModSettings settings = mod.GetSettings();
 
-            int armorSunValue = settings.GetValue<int>("Features", "armorTemperature");
-            if (armorSunValue == 0)
-            {
-                armorSun = false;
-            }
-            else if (armorSunValue == 1)
-            {
-                armorSunHalf = true;
-            }
+
 
             int statusTextValue = settings.GetValue<int>("Features", "characterTemperatureText");
             if (statusTextValue == 1)
@@ -123,6 +113,7 @@ namespace ClimateCloaks
                 statusInterval = false;
             }
 
+            metalHeatCool = settings.GetBool("Features", "metalHeatingAndCooling");
             toggleKeyStatus = settings.GetBool("Features", "temperatureStatus");
             txtIntervals = settings.GetValue<int>("Features", "textIntervals") + 1;
             nudePen = settings.GetBool("Features", "damageWhenNude");
@@ -134,8 +125,7 @@ namespace ClimateCloaks
 
             Debug.Log(
                 "C&C Settings: " +
-                "ArmSun " + armorSun.ToString() +
-                ", ArmSunHalf " + armorSunHalf.ToString() +
+                "ArmSun " + metalHeatCool.ToString() +
                 ", StatusUp " + statusLookUp.ToString() +
                 ", StatusInt " + statusInterval.ToString() +
                 ", TextInterval " + txtIntervals.ToString() +
@@ -198,7 +188,7 @@ namespace ClimateCloaks
 
         void Update()
         {
-            if (GameManager.Instance.PlayerMouseLook.Pitch <= -70 && !GameManager.Instance.PlayerMotor.IsSwimming)
+            if (GameManager.Instance.PlayerMouseLook.Pitch <= -70 && !GameManager.Instance.PlayerMotor.IsSwimming && !GameManager.Instance.PlayerMotor.IsClimbing)
             {
                 lookingUp = true;
             }
@@ -489,14 +479,13 @@ namespace ClimateCloaks
             string armorTxt = "";
 
 
-            if (wetCount > 0)
+            if (wetCount > 10)
             {
                 if (wetCount > 200) { wetTxt = " and you are completely drenched."; }
                 else if (wetCount > 100) { wetTxt = " and you are soaking wet."; }
                 else if (wetCount > 50) { wetTxt = " and you are quite wet."; }
                 else if (wetCount > 20) { wetTxt = " and you are somewhat wet."; }
-                else if (wetCount > 10) { wetTxt = " and you are a bit wet."; }
-                else { wetTxt = "and you are a bit damp."; }
+                else { wetTxt = " and you are a bit wet."; }
             }
 
             if (pureClothTemp > 40)
@@ -669,9 +658,13 @@ namespace ClimateCloaks
                 {
                     adviceTxt = "The hood of you cloak will protect your head from cooking.";
                 }
-                else if (pureClothTemp > 8)
+                else if (pureClothTemp > 8 && baseNatTemp > 10)
                 {
                     adviceTxt = "On a hot day like this, it is best to dress as lightly as possible.";
+                }
+                else if (pureClothTemp > 10)
+                {
+                    adviceTxt = "You might be more comfertable if you dressed lighter.";
                 }
                 else if (isMountain && !isNight && !isDungeon)
                 {
@@ -729,9 +722,8 @@ namespace ClimateCloaks
             {
                 Debug.Log("[Climates & Cloaks] active round start");
                 playerIsWading = (GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.Swimming || GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.WaterWalking);
+
                 TemperatureCalculator();
-
-
 
                 txtCount++;
 
@@ -769,7 +761,7 @@ namespace ClimateCloaks
                 {
                     int dmgRoll = UnityEngine.Random.Range(0, 100);
                     Debug.Log("Cloth Damage Roll = " + dmgRoll.ToString());
-                    if (dmgRoll < 1) { ClothDmg(); }
+                    if (dmgRoll <= 2) { ClothDmg(); }
                 }
 
                 //If wet, armor might get damaged
@@ -1887,12 +1879,10 @@ namespace ClimateCloaks
                         break;
                 }
             }
-            if (armorSun)
+            if (metalHeatCool)
             {
                 int metalTemp = (metal * natTemp) / 20;
 
-                if (armorSunHalf)
-                { metalTemp /= 2; }
                 if (metalTemp > 0 && playerEnterExit.IsPlayerInSunlight && !ArmorCovered())
                 {
                     temp += metalTemp;

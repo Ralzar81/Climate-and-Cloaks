@@ -9,18 +9,6 @@
             [
                 {
                     "Options": [
-                    "Deactivated",
-                    "Half Effect",
-                    "Full Effect"
-                    ],
-                    "Value": 2,
-                    "Name": "armorTemperature",
-                    "Description": "Metal armor is heated by the sun and cooled down by cold weather.",
-                    "$version": "v1",
-                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
-                },
-                {
-                    "Options": [
                     "At intervals",
                     "When looking up",
                     "At intervals and when looking up",
@@ -55,7 +43,13 @@
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
-
+                {
+                    "Value": true,
+                    "Name": "metalHeatingAndCooling",
+                    "Description": "Metal armor is heated by direct sunlight and gets cold in cold weather.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
                 {
                     "Value": true,
                     "Name": "damageWhenNude",
@@ -67,13 +61,6 @@
                     "Value": true,
                     "Name": "damageWhenBareFoot",
                     "Description": "Take damage from bare feet in extreme temperatures.",
-                    "$version": "v1",
-                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
-                },
-                {
-                    "Value": true,
-                    "Name": "TemperatureEffectsInDungeons",
-                    "Description": "Mod effects active (though reduced) inside dungeons.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
