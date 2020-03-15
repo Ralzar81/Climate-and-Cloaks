@@ -5,6 +5,7 @@
 
 using DaggerfallConnect;
 using DaggerfallWorkshop.Game;
+using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.MagicAndEffects;
@@ -83,7 +84,7 @@ namespace ClimateCloaks
             instance = go.AddComponent<ClimateCloaks>();
             mod.SaveDataInterface = instance;
 
-
+            StartGameBehaviour.OnStartGame += ClimatesCloaks_OnStartGame;
             EntityEffectBroker.OnNewMagicRound += TemperatureEffects_OnNewMagicRound;
 
             //Code for camping. Awaiting billboard spirte activation function.
@@ -165,7 +166,7 @@ namespace ClimateCloaks
         static private int absTemp = Mathf.Abs(totalTemp);
         static private bool cloak = Cloak();
         static private bool hood = HoodUp();
-        static private bool playerIsWading = (GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.Swimming || GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.WaterWalking);
+        static private bool playerIsWading = GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.Swimming;
 
 
 
@@ -253,16 +254,6 @@ namespace ClimateCloaks
             cloak = Cloak();
             hood = HoodUp();
         }
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -375,7 +366,17 @@ namespace ClimateCloaks
 
             if (!GameManager.Instance.IsPlayerInsideDungeon)
             {
-                if (DaggerfallUnity.Instance.WorldTime.Now.IsNight)
+                int clock = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+
+                if (clock >= 4 && clock <= 7)
+                {
+                    timeTxt = " morning in ";
+                }
+                else if (clock >= 16 && clock <= 19)
+                {
+                    timeTxt = " evening in ";
+                }
+                else if (DaggerfallUnity.Instance.WorldTime.Now.IsNight)
                 {
                     timeTxt = " night in ";
                 }
@@ -495,7 +496,7 @@ namespace ClimateCloaks
                 {
                     wetTxt = " but your clothes are soaked.";
                 }
-                if (wetCount > 19)
+                else if (wetCount > 19)
                 {
                     wetTxt = " but your clothes are damp.";
                 }
@@ -507,7 +508,7 @@ namespace ClimateCloaks
                 {
                     wetTxt = " but your clothes are soaked.";
                 }
-                if (wetCount > 9)
+                else if (wetCount > 9)
                 {
                     wetTxt = " but your clothes are damp.";
                 }
@@ -519,7 +520,7 @@ namespace ClimateCloaks
                 {
                     wetTxt = " but your clothes are soaked.";
                 }
-                if (wetCount > 3)
+                else if (wetCount > 3)
                 {
                     wetTxt = " but your clothes are damp.";
                 }
@@ -531,7 +532,7 @@ namespace ClimateCloaks
                 {
                     wetTxt = " and your clothes are wet.";
                 }
-                if (wetCount > 1)
+                else if (wetCount > 1)
                 {
                     wetTxt = " and your clothes are damp.";
                 }
@@ -560,9 +561,13 @@ namespace ClimateCloaks
             {
                 armorTxt = " Your armor is a bit stuffy.";
             }
+            else if (armorTemp < -5)
+            {
+                armorTxt = " The metal of your armor is cold.";
+            }
             else if (armorTemp < 0)
             {
-                armorTxt = " The metal of your armor is cooled down.";
+                armorTxt = " The metal of your armor is cool.";
             }
             Debug.Log("[Climates & Cloaks] pureClothTemp = " + pureClothTemp.ToString());
             Debug.Log("[Climates & Cloaks] armorTemp = " + armorTemp.ToString());
@@ -586,7 +591,7 @@ namespace ClimateCloaks
 
             if (totalTemp < -10)
             {
-                if (!cloak && isWeather && isDungeon)
+                if (!cloak && isWeather && !isDungeon)
                 {
                     adviceTxt = "A cloak would protect you from getting wet.";
                 }
@@ -664,7 +669,7 @@ namespace ClimateCloaks
                 }
                 else if (pureClothTemp > 10)
                 {
-                    adviceTxt = "You might be more comfertable if you dressed lighter.";
+                    adviceTxt = "You might be more comfortable if you dressed lighter.";
                 }
                 else if (isMountain && !isNight && !isDungeon)
                 {
@@ -704,7 +709,12 @@ namespace ClimateCloaks
         //    uiManager.PushWindow(new DaggerfallRestWindow(uiManager, true));
         //}
 
-
+        private static void ClimatesCloaks_OnStartGame(object sender, EventArgs e)
+        {
+            Debug.Log("[Climates & Cloaks] Starting");
+            wetCount = 100;
+            Debug.Log("[Climates & Cloaks] Start effects applied.");
+        }
 
         private static void TemperatureEffects_OnNewMagicRound()
         {
@@ -721,7 +731,7 @@ namespace ClimateCloaks
                 && !playerEntity.IsInBeastForm)
             {
                 Debug.Log("[Climates & Cloaks] active round start");
-                playerIsWading = (GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.Swimming || GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.WaterWalking);
+                playerIsWading = GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.Swimming;
 
                 TemperatureCalculator();
 
@@ -788,7 +798,7 @@ namespace ClimateCloaks
                 if (playerRace.ID != (int)Races.Argonian && playerRace.ID != (int)Races.Khajiit)
                 {
                     NakedDmg(natTemp);
-                    if (playerIsWading)
+                    if (!playerIsWading)
                     {
                         FeetDmg(natTemp);
                     }
@@ -867,15 +877,15 @@ namespace ClimateCloaks
         {
             if (playerEnterExit.IsPlayerInsideDungeon)
             {
-                if (natTemp > -10)
+                if (natTemp > -15)
                 {
-                    natTemp = Mathf.Max((natTemp/2)-20, -10);
+                    natTemp = Mathf.Max((natTemp/2)-20, -15);
                 }
                 else
                 {
-                    natTemp = Mathf.Min((natTemp / 2) + 20, -10);
+                    natTemp = Mathf.Min((natTemp / 2) + 20, -15);
                 }
-                Debug.Log("C&C Dungeon effect");
+                Debug.Log("[Climates & Cloaks] Dungeon Temp =" + natTemp.ToString());
             }
             return natTemp;
         }
@@ -1689,7 +1699,6 @@ namespace ClimateCloaks
                     case (int)MensClothing.Short_skirt:
                     case (int)WomensClothing.Tights:
                     case (int)WomensClothing.Wrap:
-                    case (int)WomensClothing.Casual_pants:
                         legs = 4;
                         break;
                     case (int)MensClothing.Long_Skirt:
@@ -1698,6 +1707,7 @@ namespace ClimateCloaks
                         break;
                     case (int)MensClothing.Casual_pants:
                     case (int)MensClothing.Breeches:
+                    case (int)WomensClothing.Casual_pants:
                         legs = 10;
                         break;
                 }
@@ -1895,7 +1905,7 @@ namespace ClimateCloaks
                 }
             }
             Debug.Log("Armor " + temp.ToString());
-            temp = Mathf.Max(temp - wetCount, 0);
+            if (temp > 0) { temp = Mathf.Max(temp - wetCount, 0); }
             return temp;
         }
 
