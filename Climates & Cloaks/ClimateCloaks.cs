@@ -73,6 +73,7 @@ namespace ClimateCloaks
         static bool txtSeverity = false;
         static bool clothDmg = true;
         static bool toggleKeyStatus = true;
+        static bool encumbranceRPR = false;
 
         [Invoke(StateManager.StateTypes.Game, 0)]
         public static void Init(InitParams initParams)
@@ -94,9 +95,14 @@ namespace ClimateCloaks
 
         void Awake()
         {
+            Mod roleplayRealism = ModManager.Instance.GetMod("RoleplayRealism");
+            if (roleplayRealism != null)
+            {
+                ModSettings rrSettings = roleplayRealism.GetSettings();
+                encumbranceRPR = rrSettings.GetBool("Modules", "encumbranceEffects");
+            }
+
             ModSettings settings = mod.GetSettings();
-
-
 
             int statusTextValue = settings.GetValue<int>("Features", "characterTemperatureText");
             if (statusTextValue == 1)
@@ -114,6 +120,7 @@ namespace ClimateCloaks
                 statusInterval = false;
             }
 
+            
             metalHeatCool = settings.GetBool("Features", "metalHeatingAndCooling");
             toggleKeyStatus = settings.GetBool("Features", "temperatureStatus");
             txtIntervals = settings.GetValue<int>("Features", "textIntervals") + 1;
@@ -228,10 +235,13 @@ namespace ClimateCloaks
                 DaggerfallMessageBox msgBox = DaggerfallUI.UIManager.TopWindow as DaggerfallMessageBox;
                 if (msgBox != null && msgBox.ExtraProceedBinding == InputManager.Instance.GetBinding(InputManager.Actions.Status))
                 {
+
                     // Setup next status info box.
                     DaggerfallMessageBox newBox = new DaggerfallMessageBox(DaggerfallUI.UIManager, msgBox);
-                    string[] messages = new string[] { TxtClimate(), TxtClothing(), TxtAdvice() };
-                    newBox.SetText(messages);
+                    if (encumbranceRPR)
+                    { string[] messages = new string[] { TxtClimate(), TxtClothing(), TxtAdvice(), TxtEncumbrance() }; newBox.SetText(messages); }
+                    else
+                    { string[] messages = new string[] { TxtClimate(), TxtClothing(), TxtAdvice() }; newBox.SetText(messages); }
                     newBox.ExtraProceedBinding = InputManager.Instance.GetBinding(InputManager.Actions.Status); // set proceed binding
                     newBox.ClickAnywhereToClose = true;
                     msgBox.AddNextMessageBox(newBox);
@@ -700,6 +710,16 @@ namespace ClimateCloaks
             return adviceTxt;
         }
 
+        public static string TxtEncumbrance()
+        {
+            float encPc = playerEntity.CarriedWeight / playerEntity.MaxEncumbrance;
+            float encOver = Mathf.Max(encPc - 0.75f, 0f) * 2f;
+            if (encOver > 0)
+            {
+                return "You are over encumbered, which will slow you down and tire you out.";
+            }
+            return "";
+        }
 
         //Code for making camp. Awaiting ability to activate billboards.
         //private static void CampActivation(Transform transform)
