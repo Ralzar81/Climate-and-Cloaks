@@ -4,15 +4,23 @@
         "name": "Shoes",
     },
     {
-        "index": 154,
-        "name": "Light Cloak",
-    },
-    {
-        "index": 155,
-        "name": "Warm Cloak",
-    },
-    {
-        "index": 163,
-        "name": "Warm Robes",
+        "index": 530,
+        "name": "Camping Equipment",
+        "baseWeight": 5.0,
+        "hitPoints": 10,
+        "capacityOrTarget": 0,
+        "basePrice": 13,
+        "enchantmentPoints": 0,
+        "rarity": 1,
+        "variants": 0,
+        "drawOrderOrEffect": 0,
+        "isBluntWeapon": false,
+        "isLiquid": false,
+        "isOneHanded": false,
+        "isIngredient": false,
+        "worldTextureArchive": 204,
+        "worldTextureRecord": 8,
+        "playerTextureArchive": 0,
+        "playerTextureRecord": 0
     },
 ]

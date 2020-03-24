@@ -1,6 +1,6 @@
 {
     "ModTitle": "Climates & Cloaks",
-    "ModVersion": "1.2.7",
+    "ModVersion": "1.3.0",
     "ModAuthor": "Ralzar",
     "ContactInfo": "https://forums.dfworkshop.net/memberlist.php?mode=viewprofile&u=1922",
     "DFUnity_Version": "0.10.20",
@@ -9,8 +9,15 @@
     "Files": [
         "Assets/Game/Mods/Climates & Cloaks/ClimateCloaks.cs",
         "Assets/Game/Mods/Climates & Cloaks/modsettings.json",
-        "Assets/Game/Mods/Climates & Cloaks.dfmod.json"
+        "Assets/Game/Mods/Climates & Cloaks/ItemTemplates.json"
     ],
     "Contributes": null,
-    "Dependencies": null
+    "Dependencies": [
+        {
+            "Name": "roleplayrealism",
+            "IsOptional": false,
+            "IsPeer": false,
+            "Version": null
+        }
+    ]
 }
