@@ -92,9 +92,16 @@ namespace ClimateCloaks
 
             DaggerfallUnity.Instance.ItemHelper.RegisterItemUseHander(530, UseCampingEquipment);
             DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(530, ItemGroups.UselessItems2);
+            PlayerActivate.RegisterCustomActivation(210, 1, CampfireActivation);
+            PlayerActivate.RegisterCustomActivation(41116, CampfireActivation);
+        }
 
-            //Code for camping. Awaiting billboard spirte activation function.
-            //PlayerActivate.RegisterModelActivation(41116, CampActivation);
+        private static void CampfireActivation(Transform transform)
+        {
+            camping = true;
+            Debug.Log("[Climates & Cloaks] Camping = True");
+            IUserInterfaceManager uiManager = DaggerfallUI.UIManager;
+            uiManager.PushWindow(new DaggerfallRestWindow(uiManager, true));
         }
 
         static bool UseCampingEquipment(DaggerfallUnityItem item, ItemCollection collection)
@@ -102,6 +109,8 @@ namespace ClimateCloaks
             item.LowerCondition(1, GameManager.Instance.PlayerEntity, collection);
             camping = true;
             Debug.Log("[Climates & Cloaks] Camping = True");
+            //Tent placing code
+            //GameObjectHelper.CreateDaggerfallMeshGameObject(41606, transform);
             DaggerfallUI.PostMessage(DaggerfallUIMessages.dfuiOpenRestWindow);
             return true;
         }
@@ -288,7 +297,7 @@ namespace ClimateCloaks
 
         //// Alternative Textbox code.
         static DaggerfallMessageBox tempInfoBox;
-        public static void RestPopup(string[] message)
+        public static void TextPopup(string[] message)
         {
             if (tempInfoBox == null)
             {
@@ -773,9 +782,18 @@ namespace ClimateCloaks
 
         private static void ClimatesCloaks_OnStartGame(object sender, EventArgs e)
         {
-            Debug.Log("[Climates & Cloaks] Starting");
-            wetCount = 100;
-            Debug.Log("[Climates & Cloaks] Start effects applied.");
+            if (playerGPS.CurrentLocation.Name == "Privateer's Hold")
+            {
+                wetCount = 100;
+                EntityEffectBroker.OnNewMagicRound += Privateer_OnNewMagicRound;
+            }
+        }
+
+        private static void Privateer_OnNewMagicRound()
+        {
+            string[] messages = new string[] { "You are cold and wet from the shipwreck.", "You should use the campfire to get dry." };
+            TextPopup(messages);
+            EntityEffectBroker.OnNewMagicRound -= Privateer_OnNewMagicRound;
         }
 
 
