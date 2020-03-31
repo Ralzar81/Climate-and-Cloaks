@@ -8,8 +8,23 @@
     "GUID": "7975b109-1381-485b-bdfd-8d076bb5d0c9",
     "Files": [
         "Assets/Game/Mods/Climates & Cloaks/ClimateCloaks.cs",
+        "Assets/Game/Mods/Climates & Cloaks/AdviceText.cs",
+        "Assets/Game/Mods/Climates & Cloaks/FillingFood.cs",
         "Assets/Game/Mods/Climates & Cloaks/modsettings.json",
-        "Assets/Game/Mods/Climates & Cloaks/ItemTemplates.json"
+        "Assets/Game/Mods/Climates & Cloaks/ItemTemplates.json",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/532_0-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/532_1-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/533_0-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/533_1-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/534_0-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/534_1-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/535_0-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/535_1-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/536_0-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/536_1-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/537_0-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/537_1-0.PNG",
+        "Assets/Game/Mods/Climates & Cloaks/Textures/539_0-0.png"
     ],
     "Contributes": null,
     "Dependencies": [
