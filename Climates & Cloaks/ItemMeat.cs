@@ -8,18 +8,29 @@ using DaggerfallWorkshop.Game.Serialization;
 
 namespace FillingFood
 {
-    public class ItemBread : AbstractItemFood
+    public class ItemMeat : AbstractItemFood
     {
-        public const int templateIndex = 534;
+        public const int templateIndex = 537;
 
-        public ItemBread() : base(ItemGroups.UselessItems2, templateIndex)
+        public ItemMeat() : base(ItemGroups.UselessItems2, templateIndex)
         {
+        }
+
+        public override string GetFoodStatus()
+        {
+            switch (FoodStatus)
+            {
+                case StatusStale:
+                    return "Smelly ";
+                default:
+                    return base.GetFoodStatus();
+            }
         }
 
         public override ItemData_v1 GetSaveData()
         {
             ItemData_v1 data = base.GetSaveData();
-            data.className = typeof(ItemBread).ToString();
+            data.className = typeof(ItemMeat).ToString();
             return data;
         }
     }

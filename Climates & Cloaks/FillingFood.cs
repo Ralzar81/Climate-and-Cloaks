@@ -33,23 +33,14 @@ namespace FillingFood
 
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
 
-            itemHelper.RegisterCustomItem(531, ItemGroups.UselessItems2);
-            itemHelper.RegisterItemUseHander(531, EatFood);
-            itemHelper.RegisterCustomItem(532, ItemGroups.UselessItems2);
-            itemHelper.RegisterItemUseHander(532, EatFood);
-            itemHelper.RegisterCustomItem(533, ItemGroups.UselessItems2);
-            itemHelper.RegisterItemUseHander(533, EatFood);
-            //itemHelper.RegisterCustomItem(534, ItemGroups.UselessItems2);
-            //itemHelper.RegisterItemUseHander(534, EatFood);
-
+            // Rations need images commented out for now.
+            //itemHelper.RegisterCustomItem(ItemRations.templateIndex, ItemGroups.UselessItems2, typeof(ItemRations));
+            itemHelper.RegisterCustomItem(ItemApple.templateIndex, ItemGroups.UselessItems2, typeof(ItemApple));
             itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemBread));
 
-            itemHelper.RegisterCustomItem(535, ItemGroups.UselessItems2);
-            itemHelper.RegisterItemUseHander(535, EatFood);
-            itemHelper.RegisterCustomItem(536, ItemGroups.UselessItems2);
-            itemHelper.RegisterItemUseHander(536, EatFood);
-            itemHelper.RegisterCustomItem(537, ItemGroups.UselessItems2);
-            itemHelper.RegisterItemUseHander(537, EatFood);
+            // Meat has an example of specifc food statuses e.g. smelly instead of stale, fruit may want to use soft
+            itemHelper.RegisterCustomItem(ItemMeat.templateIndex, ItemGroups.UselessItems2, typeof(ItemMeat));
+
         }
 
         DaggerfallUnity dfUnity;
@@ -181,10 +172,11 @@ namespace FillingFood
                 for (int i = 0; i < playerItems.Count; i++)
                 {
                     DaggerfallUnityItem item = playerItems.GetItem(i);
-                    if (item.TemplateIndex == ItemBread.templateIndex)
+                    if (item is AbstractItemFood)
                     {
-                        ItemBread food = item as ItemBread;
+                        AbstractItemFood food = item as AbstractItemFood;
                         food.RotFood();
+                        rotted = true;
                     }
                     /*
                     if (item.TemplateIndex > 531 && item.TemplateIndex < 538)
@@ -223,7 +215,7 @@ namespace FillingFood
             {
                 rotCounter++;
                 Debug.Log("[Filling Food] rotCounter = " + rotCounter.ToString());
-                if (rotCounter > 3)//50)
+                if (rotCounter > 1)//50)
                 {
                     FoodRot();
                     rotCounter = 0;
