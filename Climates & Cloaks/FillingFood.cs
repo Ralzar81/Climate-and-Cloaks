@@ -39,8 +39,11 @@ namespace FillingFood
             itemHelper.RegisterItemUseHander(532, EatFood);
             itemHelper.RegisterCustomItem(533, ItemGroups.UselessItems2);
             itemHelper.RegisterItemUseHander(533, EatFood);
-            itemHelper.RegisterCustomItem(534, ItemGroups.UselessItems2);
-            itemHelper.RegisterItemUseHander(534, EatFood);
+            //itemHelper.RegisterCustomItem(534, ItemGroups.UselessItems2);
+            //itemHelper.RegisterItemUseHander(534, EatFood);
+
+            itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemBread));
+
             itemHelper.RegisterCustomItem(535, ItemGroups.UselessItems2);
             itemHelper.RegisterItemUseHander(535, EatFood);
             itemHelper.RegisterCustomItem(536, ItemGroups.UselessItems2);
@@ -178,6 +181,12 @@ namespace FillingFood
                 for (int i = 0; i < playerItems.Count; i++)
                 {
                     DaggerfallUnityItem item = playerItems.GetItem(i);
+                    if (item.TemplateIndex == ItemBread.templateIndex)
+                    {
+                        ItemBread food = item as ItemBread;
+                        food.RotFood();
+                    }
+                    /*
                     if (item.TemplateIndex > 531 && item.TemplateIndex < 538)
                     {
                         if (item.PlayerTextureArchive < 532)
@@ -196,6 +205,7 @@ namespace FillingFood
                             Debug.LogFormat("[Filling Food] {0} rotted", item.shortName);
                         }
                     }
+                    */
                 }
             }
             if (rotted)
@@ -213,7 +223,7 @@ namespace FillingFood
             {
                 rotCounter++;
                 Debug.Log("[Filling Food] rotCounter = " + rotCounter.ToString());
-                if (rotCounter > 50)
+                if (rotCounter > 3)//50)
                 {
                     FoodRot();
                     rotCounter = 0;

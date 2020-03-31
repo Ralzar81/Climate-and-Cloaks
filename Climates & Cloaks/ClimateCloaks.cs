@@ -103,8 +103,7 @@ namespace ClimatesCloaks
         {
             camping = true;
             Debug.Log("[Climates & Cloaks] Camping = True");
-            IUserInterfaceManager uiManager = DaggerfallUI.UIManager;
-            uiManager.PushWindow(new DaggerfallRestWindow(uiManager, true));
+            DaggerfallUI.PostMessage(DaggerfallUIMessages.dfuiOpenRestWindow);
         }
 
         static bool UseCampingEquipment(DaggerfallUnityItem item, ItemCollection collection)
