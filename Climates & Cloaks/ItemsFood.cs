@@ -9,7 +9,7 @@ using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.Serialization;
 
-namespace FillingFood
+namespace ClimatesCloaks
 {
     /// <summary>
     /// Abstract class for all food items common behaviour

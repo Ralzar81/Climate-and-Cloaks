@@ -11,12 +11,10 @@ using DaggerfallWorkshop.Game.Utility.ModSupport;
 using UnityEngine;
 using DaggerfallWorkshop;
 using DaggerfallWorkshop.Game.Items;
-using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using DaggerfallWorkshop.Game.Serialization;
 
-namespace FillingFood
+namespace ClimatesCloaks
 {
-
     public class FillingFood : MonoBehaviour
     {
 

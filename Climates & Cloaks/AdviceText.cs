@@ -31,7 +31,7 @@ namespace ClimatesCloaks
         static private bool cloak = ClimateCloaks.cloak;
         static private bool hood = ClimateCloaks.hood;
         static private bool drink = ClimateCloaks.drink;
-        static private uint hunger = FillingFood.FillingFood.hunger;
+        static private uint hunger = FillingFood.hunger;
 
         public static void AdviceDataUpdate()
         {
@@ -44,7 +44,7 @@ namespace ClimatesCloaks
             cloak = ClimateCloaks.cloak;
             hood = ClimateCloaks.hood;
             drink = ClimateCloaks.drink;
-            hunger = FillingFood.FillingFood.hunger;
+            hunger = FillingFood.hunger;
         }
 
         public static string TxtClimate()
@@ -476,7 +476,7 @@ namespace ClimatesCloaks
 
         public static string TxtFood()
         {
-            hunger = FillingFood.FillingFood.hunger;
+            hunger = FillingFood.hunger;
             string foodString = "If you had a decent meal, you could go on for longer.";
             Debug.Log("[AdviceText] hunger = " + hunger.ToString());
             if (hunger < 180)
