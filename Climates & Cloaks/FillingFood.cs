@@ -117,52 +117,6 @@ namespace FillingFood
             }
         }
 
-
-        public static bool EatFood(DaggerfallUnityItem item, ItemCollection collection)
-        {
-            uint cal = 240;
-            if (item.TemplateIndex == 531) //Rations
-            {
-                cal -= 120;
-            }
-            else if (item.TemplateIndex == 532 || item.TemplateIndex == 533) //Apple or Orange
-            {
-                cal -= 60;
-            }
-            else if (item.TemplateIndex == 534) //Bread
-            {
-                cal -= 120;
-            }
-            else if (item.TemplateIndex == 535) //Fish
-            {
-                cal -= 180;
-            }
-            else if (item.TemplateIndex == 536) //Salted Fish
-            {
-                cal -= 120;
-            }
-            else if (item.TemplateIndex == 537) //Meat
-            {
-                cal -= 240;
-            }
-
-            if (hunger > 240)
-            {
-                GameManager.Instance.PlayerEntity.LastTimePlayerAteOrDrankAtTavern = gameMinutes - cal;
-                collection.RemoveItem(item);
-            }
-            else if (hunger > 240-cal )
-            {
-                GameManager.Instance.PlayerEntity.LastTimePlayerAteOrDrankAtTavern += (240 - cal);
-                collection.RemoveItem(item);
-            }
-            else
-            {
-                DaggerfallUI.MessageBox(HardStrings.youAreNotHungry);
-            }
-            return true;
-        }
-
         static private void FoodRot()
         {
             bool rotted = false;
@@ -178,26 +132,6 @@ namespace FillingFood
                         food.RotFood();
                         rotted = true;
                     }
-                    /*
-                    if (item.TemplateIndex > 531 && item.TemplateIndex < 538)
-                    {
-                        if (item.PlayerTextureArchive < 532)
-                        {
-                            rotted = true;
-                            item.shortName = "Expired " + item.ItemName;
-                            item.PlayerTextureArchive = item.TemplateIndex;
-                            item.WorldTextureRecord = 0;
-                            Debug.LogFormat("[Filling Food] {0} expired", item.shortName);
-                        }
-                        else if (item.WorldTextureArchive > 531 && item.WorldTextureRecord == 0)
-                        {
-                            rotted = true;
-                            item.shortName = "Rotten " + item.ItemName;
-                            item.WorldTextureRecord = 1;
-                            Debug.LogFormat("[Filling Food] {0} rotted", item.shortName);
-                        }
-                    }
-                    */
                 }
             }
             if (rotted)
