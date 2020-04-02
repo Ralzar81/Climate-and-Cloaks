@@ -5,7 +5,6 @@
 
 using DaggerfallConnect;
 using DaggerfallWorkshop.Game;
-using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
@@ -32,6 +31,10 @@ namespace ClimatesCloaks
 
     public class ClimateCloaks : MonoBehaviour, IHasModSaveData
     {
+        public const int templateIndex_CampEquip = 530;
+        public const int templateIndex_Rations = 531;
+        public const int templateIndex_Waterskin = 539;
+
         static Mod mod;
         static ClimateCloaks instance;
 
@@ -91,10 +94,10 @@ namespace ClimatesCloaks
             StartGameBehaviour.OnStartGame += ClimatesCloaks_OnStartGame;
             EntityEffectBroker.OnNewMagicRound += TemperatureEffects_OnNewMagicRound;
 
-            DaggerfallUnity.Instance.ItemHelper.RegisterItemUseHander(530, UseCampingEquipment);
-            DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(530, ItemGroups.UselessItems2);
+            DaggerfallUnity.Instance.ItemHelper.RegisterItemUseHander(templateIndex_CampEquip, UseCampingEquipment);
+            DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_CampEquip, ItemGroups.UselessItems2);
             //DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(538, ItemGroups.UselessItems2); Not decided if I wish to include this item
-            DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(539, ItemGroups.UselessItems2);
+            DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_Waterskin, ItemGroups.UselessItems2);
             PlayerActivate.RegisterCustomActivation(210, 1, CampfireActivation);
             PlayerActivate.RegisterCustomActivation(41116, CampfireActivation);
         }
@@ -492,7 +495,7 @@ namespace ClimatesCloaks
         static bool WaterToDrink()
         {
 
-            List<DaggerfallUnityItem> skins = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, 539);
+            List<DaggerfallUnityItem> skins = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, templateIndex_Waterskin);
             foreach (DaggerfallUnityItem skin in skins)
             {
                 if (skin.weightInKg > 0.1)
@@ -511,7 +514,7 @@ namespace ClimatesCloaks
 
         static void DrinkWater()
         {
-            List<DaggerfallUnityItem> skins = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, 539);
+            List<DaggerfallUnityItem> skins = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, templateIndex_Waterskin);
             foreach (DaggerfallUnityItem skin in skins)
             {
                 if (skin.weightInKg > 0.1)
@@ -2281,8 +2284,4 @@ namespace ClimatesCloaks
         //}
     }
 
-    public class Waterskin : DaggerfallUnityItem
-    {
-        public const int templateIndex = 539;
-    }
 }
