@@ -32,6 +32,8 @@ namespace ClimatesCloaks
         static private bool hood = ClimateCloaks.hood;
         static private bool drink = ClimateCloaks.drink;
         static private uint hunger = FillingFood.hunger;
+        static private bool starving = FillingFood.starving;
+        static private bool rations = FillingFood.rations;
 
         public static void AdviceDataUpdate()
         {
@@ -45,6 +47,8 @@ namespace ClimatesCloaks
             hood = ClimateCloaks.hood;
             drink = ClimateCloaks.drink;
             hunger = FillingFood.hunger;
+            starving = FillingFood.starving;
+            rations = FillingFood.rations;
         }
 
         public static string TxtClimate()
@@ -479,6 +483,10 @@ namespace ClimatesCloaks
             hunger = FillingFood.hunger;
             string foodString = "If you had a decent meal, you could go on for longer.";
             Debug.Log("[AdviceText] hunger = " + hunger.ToString());
+            if (playerGPS.IsPlayerInLocationRect && !rations)
+            {
+                foodString = "You might want to buy some rations while in town.";
+            }
             if (hunger < 180)
             {
                 foodString = "You are still feeling envigorated from your last meal.";
@@ -486,6 +494,10 @@ namespace ClimatesCloaks
             else if (hunger < 240)
             {
                 foodString = "You feel you might get hungry again soon.";
+            }
+            else if (starving)
+            {
+                foodString = "The lack of food is making you weaker each day.";
             }
             return foodString;
         }

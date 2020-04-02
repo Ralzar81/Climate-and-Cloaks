@@ -12,6 +12,7 @@ using UnityEngine;
 using DaggerfallWorkshop;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.Serialization;
+using System.Collections.Generic;
 
 namespace ClimatesCloaks
 {
@@ -31,14 +32,12 @@ namespace ClimatesCloaks
 
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
 
-            // Rations need images commented out for now.
-            //itemHelper.RegisterCustomItem(ItemRations.templateIndex, ItemGroups.UselessItems2, typeof(ItemRations));
             itemHelper.RegisterCustomItem(ItemApple.templateIndex, ItemGroups.UselessItems2, typeof(ItemApple));
+            itemHelper.RegisterCustomItem(ItemApple.templateIndex, ItemGroups.UselessItems2, typeof(ItemOrange));
             itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemBread));
-
-            // Meat has an example of specifc food statuses e.g. smelly instead of stale, fruit may want to use soft
+            itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemFish));
+            itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemSaltedFish));
             itemHelper.RegisterCustomItem(ItemMeat.templateIndex, ItemGroups.UselessItems2, typeof(ItemMeat));
-
         }
 
         DaggerfallUnity dfUnity;
@@ -72,7 +71,11 @@ namespace ClimatesCloaks
 
         //Hunting Quest test
         static PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
-        static private bool hungry = true;
+        static public bool hungry = true;
+        static public bool starving = false;
+        static private uint starvation = 0;
+        static private int starvCounter = 0;
+        static public bool rations = RationsToEat();
         static private int foodCount = 0;
         static public uint gameMinutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
         static public uint ateTime = GameManager.Instance.PlayerEntity.LastTimePlayerAteOrDrankAtTavern;
@@ -99,7 +102,7 @@ namespace ClimatesCloaks
             //        Debug.Log("[Filling Food] Hunting Success");
             //        QuestMachine.Instance.StartQuest("HFQ00");
             //        tickTimeInterval = postTextInterval;
-                    
+
             //    }
             //}
 
@@ -109,16 +112,74 @@ namespace ClimatesCloaks
             if (hunger <= 240 && hungry)
             {
                 hungry = false;
+                starving = false;
                 EntityEffectBroker.OnNewMagicRound += FoodEffects_OnNewMagicRound;
                 DaggerfallUI.AddHUDText("You feel invigorated by the meal.");
                 Debug.Log("[FillingFood Food] Registering OnNewMagicRound");
             }
+            if (hunger > 1440 && !starving)
+            {
+                starving = true;
+                DaggerfallUI.AddHUDText("You are starving...");
+                EntityEffectBroker.OnNewMagicRound += Starvation_OnNewMagicRound;
+            }
+        }
+
+        static private void Starvation_OnNewMagicRound()
+        {
+            if (!SaveLoadManager.Instance.LoadInProgress && DaggerfallUI.Instance.FadeBehaviour.FadeInProgress && GameManager.IsGamePaused)
+            starvation = (hunger / 1440);
+            rations = RationsToEat();
+            if (hunger > 240 && starving && rations)
+            {
+                rations = RationsToEat();
+                List<DaggerfallUnityItem> sacks = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, ClimateCloaks.templateIndex_Rations);
+                foreach (DaggerfallUnityItem sack in sacks)
+                {
+                    if (sack.weightInKg > 0.1)
+                    {
+                        sack.weightInKg -= 0.1f;
+                        Debug.LogFormat("[Filling Food] {0} eat {1}", sack.shortName, rations);
+                        if (sack.weightInKg <= 0.1)
+                        {
+                            sack.shortName = "Empty Sack";
+                            DaggerfallUI.AddHUDText("You empty your ration sack.");
+                        }
+                        break;
+                    }
+                }
+            }
+            else if (!rations && starving)
+            {
+
+                playerEntity.DecreaseFatigue((int)starvation);
+            }
+            else if (!starving)
+            {
+                starvation = 0;
+                EntityEffectBroker.OnNewMagicRound -= Starvation_OnNewMagicRound;
+            }
+        }
+
+        static private bool RationsToEat()
+        {
+            List<DaggerfallUnityItem> sacks = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, ClimateCloaks.templateIndex_Rations);
+            foreach (DaggerfallUnityItem sack in sacks)
+            {
+                if (sack.weightInKg > 0.1)
+                {
+                    Debug.Log("[Climates & Cloaks] WaterToDrink = true");
+                    return true;
+                }
+            }
+            return false;
         }
 
         static private void FoodRot()
         {
             bool rotted = false;
             int rotChance = Random.Range(1,100);
+            Debug.Log("[Filling Food] rotChance = " + rotChance.ToString());
             foreach (ItemCollection playerItems in new ItemCollection[] { GameManager.Instance.PlayerEntity.Items, GameManager.Instance.PlayerEntity.WagonItems })
             {
                 for (int i = 0; i < playerItems.Count; i++)
@@ -127,8 +188,12 @@ namespace ClimatesCloaks
                     if (item is AbstractItemFood)
                     {
                         AbstractItemFood food = item as AbstractItemFood;
-                        food.RotFood();
-                        rotted = true;
+                        if (rotChance > food.maxCondition && food.FoodStatus < 4)
+                        { 
+                            food.RotFood();
+                            rotted = true;
+                            Debug.Log("[Filling Food] Food Rotted: " + food.shortName);
+                        }
                     }
                 }
             }
@@ -151,7 +216,6 @@ namespace ClimatesCloaks
                 {
                     FoodRot();
                     rotCounter = 0;
-                    Debug.Log("[Filling Food] Food rotted");
                 }
             }
         }

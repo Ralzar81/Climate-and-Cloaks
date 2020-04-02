@@ -41,7 +41,7 @@ namespace ClimatesCloaks
             switch (FoodStatus)
             {
                 case StatusStale:
-                    return "Stale ";
+                    return "Smelly ";
                 case StatusMouldy:
                     return "Mouldy ";
                 case StatusRotten:
@@ -77,8 +77,9 @@ namespace ClimatesCloaks
                     default:
                         return WorldTextureRecord;
                     case StatusMouldy:
-                    case StatusRotten:
                         return 0;
+                    case StatusRotten:
+                        return 1;
                     case StatusPutrid:
                         return 1;
                 }
@@ -99,24 +100,31 @@ namespace ClimatesCloaks
             PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
             uint gameMinutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
             uint hunger = gameMinutes - playerEntity.LastTimePlayerAteOrDrankAtTavern;
+            uint cals = GetCalories() / ((uint)FoodStatus + 1);
 
-            if (hunger >= GetCalories())
+            if (FoodStatus > 3)
             {
-                if (hunger > GetCalories() + 240)
+                DaggerfallUI.MessageBox(string.Format("This {0}{1} is too disgusting to force down.", GetFoodStatus(), ItemTemplate.name));
+            }
+            else if (hunger >= cals)
+            {
+                if (hunger > cals + 240)
                     playerEntity.LastTimePlayerAteOrDrankAtTavern = gameMinutes - 240;
                 else
-                    playerEntity.LastTimePlayerAteOrDrankAtTavern += GetCalories();
+                    playerEntity.LastTimePlayerAteOrDrankAtTavern += cals;
 
                 collection.RemoveItem(this);
+                DaggerfallUI.MessageBox(string.Format("You eat the {0}{1}.", GetFoodStatus(), ItemTemplate.name));
             }
             else
             {
-                DaggerfallUI.MessageBox(string.Format("You are not hungry enough to eat the {0} right now.", ItemTemplate.name));
+                DaggerfallUI.MessageBox(string.Format("You are not hungry enough to eat the {0}{1} right now.", GetFoodStatus(), ItemTemplate.name));
             }
             return true;
         }
     }
 
+    //Apple
     public class ItemApple : AbstractItemFood
     {
         public const int templateIndex = 532;
@@ -130,6 +138,17 @@ namespace ClimatesCloaks
             return 60;
         }
 
+        public override string GetFoodStatus()
+        {
+            switch (FoodStatus)
+            {
+                case StatusStale:
+                    return "Soft ";
+                default:
+                    return base.GetFoodStatus();
+            }
+        }
+
         public override ItemData_v1 GetSaveData()
         {
             ItemData_v1 data = base.GetSaveData();
@@ -138,6 +157,40 @@ namespace ClimatesCloaks
         }
     }
 
+    //Orange
+    public class ItemOrange : AbstractItemFood
+    {
+        public const int templateIndex = 533;
+
+        public ItemOrange() : base(ItemGroups.UselessItems2, templateIndex)
+        {
+        }
+
+        public override uint GetCalories()
+        {
+            return 60;
+        }
+
+        public override string GetFoodStatus()
+        {
+            switch (FoodStatus)
+            {
+                case StatusStale:
+                    return "Soft ";
+                default:
+                    return base.GetFoodStatus();
+            }
+        }
+
+        public override ItemData_v1 GetSaveData()
+        {
+            ItemData_v1 data = base.GetSaveData();
+            data.className = typeof(ItemOrange).ToString();
+            return data;
+        }
+    }
+
+    //Bread
     public class ItemBread : AbstractItemFood
     {
         public const int templateIndex = 534;
@@ -151,6 +204,17 @@ namespace ClimatesCloaks
             return 180;
         }
 
+        public override string GetFoodStatus()
+        {
+            switch (FoodStatus)
+            {
+                case StatusStale:
+                    return "Stale ";
+                default:
+                    return base.GetFoodStatus();
+            }
+        }
+
         public override ItemData_v1 GetSaveData()
         {
             ItemData_v1 data = base.GetSaveData();
@@ -159,6 +223,51 @@ namespace ClimatesCloaks
         }
     }
 
+    //Fish
+    public class ItemFish : AbstractItemFood
+    {
+        public const int templateIndex = 533;
+
+        public ItemFish() : base(ItemGroups.UselessItems2, templateIndex)
+        {
+        }
+
+        public override uint GetCalories()
+        {
+            return 180;
+        }
+
+        public override ItemData_v1 GetSaveData()
+        {
+            ItemData_v1 data = base.GetSaveData();
+            data.className = typeof(ItemFish).ToString();
+            return data;
+        }
+    }
+
+    //Salted Fish
+    public class ItemSaltedFish : AbstractItemFood
+    {
+        public const int templateIndex = 533;
+
+        public ItemSaltedFish() : base(ItemGroups.UselessItems2, templateIndex)
+        {
+        }
+
+        public override uint GetCalories()
+        {
+            return 120;
+        }
+
+        public override ItemData_v1 GetSaveData()
+        {
+            ItemData_v1 data = base.GetSaveData();
+            data.className = typeof(ItemSaltedFish).ToString();
+            return data;
+        }
+    }
+
+    //Meat
     public class ItemMeat : AbstractItemFood
     {
         public const int templateIndex = 537;
@@ -170,17 +279,6 @@ namespace ClimatesCloaks
         public override uint GetCalories()
         {
             return 240;
-        }
-
-        public override string GetFoodStatus()
-        {
-            switch (FoodStatus)
-            {
-                case StatusStale:
-                    return "Smelly ";
-                default:
-                    return base.GetFoodStatus();
-            }
         }
 
         public override ItemData_v1 GetSaveData()

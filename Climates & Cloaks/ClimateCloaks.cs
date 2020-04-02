@@ -98,6 +98,7 @@ namespace ClimatesCloaks
             DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_CampEquip, ItemGroups.UselessItems2);
             //DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(538, ItemGroups.UselessItems2); Not decided if I wish to include this item
             DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_Waterskin, ItemGroups.UselessItems2);
+            DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_Rations, ItemGroups.UselessItems2);
             PlayerActivate.RegisterCustomActivation(210, 1, CampfireActivation);
             PlayerActivate.RegisterCustomActivation(41116, CampfireActivation);
         }
@@ -271,14 +272,29 @@ namespace ClimatesCloaks
                     TemperatureCalculator();
                     Debug.Log("[Climates & Cloaks] Status Textbox Calculations Complete");
                     DaggerfallMessageBox newBox = new DaggerfallMessageBox(DaggerfallUI.UIManager, msgBox);
+
+                    List<string> messages = new List<string>();
+                    messages.Add(AdviceText.TxtClimate());
+                    messages.Add(AdviceText.TxtAdvice());
+                    messages.Add(string.Empty);
                     if (encumbranceRPR)
-                    { string[] messages = new string[] { AdviceText.TxtClimate(), AdviceText.TxtClothing(), AdviceText.TxtAdvice(), "", AdviceText.TxtFood(), "", AdviceText.TxtEncumbrance(), AdviceText.TxtEncAdvice() }; newBox.SetText(messages); }
-                    else
-                    { string[] messages = new string[] { AdviceText.TxtClimate(), AdviceText.TxtClothing(), AdviceText.TxtAdvice(), "", AdviceText.TxtFood() }; newBox.SetText(messages); }
+                    {
+                        messages.Add(AdviceText.TxtEncumbrance());
+                        messages.Add(AdviceText.TxtEncAdvice());
+                        messages.Add(string.Empty);
+                    }
+                    messages.Add(AdviceText.TxtFood());                   
+                    newBox.SetText(messages.ToArray());
+
                     newBox.ExtraProceedBinding = InputManager.Instance.GetBinding(InputManager.Actions.Status); // set proceed binding
                     newBox.ClickAnywhereToClose = true;
                     msgBox.AddNextMessageBox(newBox);
                     statusClosed = false;
+                    //if (encumbranceRPR)
+                    //{ string[] messages = new string[] { AdviceText.TxtClimate(), AdviceText.TxtClothing(), AdviceText.TxtAdvice(), "", AdviceText.TxtFood(), "", AdviceText.TxtEncumbrance(), AdviceText.TxtEncAdvice() }; newBox.SetText(messages); }
+                    //else
+                    //{ string[] messages = new string[] { AdviceText.TxtClimate(), AdviceText.TxtClothing(), AdviceText.TxtAdvice(), "", AdviceText.TxtFood() }; newBox.SetText(messages); }
+
                 }
             }
         }
