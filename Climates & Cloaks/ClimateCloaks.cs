@@ -113,15 +113,15 @@ namespace ClimatesCloaks
             itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemSaltedFish));
             itemHelper.RegisterCustomItem(ItemMeat.templateIndex, ItemGroups.UselessItems2, typeof(ItemMeat));
 
-            DaggerfallUnity.Instance.ItemHelper.RegisterItemUseHander(templateIndex_CampEquip, UseCampingEquipment);
+            DaggerfallUnity.Instance.ItemHelper.RegisterItemUseHandler(templateIndex_CampEquip, UseCampingEquipment);
             DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_CampEquip, ItemGroups.UselessItems2);
             DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_Waterskin, ItemGroups.UselessItems2);
             DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_Rations, ItemGroups.UselessItems2);
-            PlayerActivate.RegisterCustomActivation(210, 1, CampfireActivation);
-            PlayerActivate.RegisterCustomActivation(41116, CampfireActivation);
+            PlayerActivate.RegisterCustomActivation(mod, 210, 1, CampfireActivation);
+            PlayerActivate.RegisterCustomActivation(mod, 41116, CampfireActivation);
         }
 
-        private static void CampfireActivation(Transform transform)
+        private static void CampfireActivation(RaycastHit hit)
         {
             camping = true;
             Debug.Log("[Climates & Cloaks] Camping = True");
