@@ -9,8 +9,6 @@
     "Files": [
         "Assets/Game/Mods/Climates & Cloaks/ClimateCloaks.cs",
         "Assets/Game/Mods/Climates & Cloaks/AdviceText.cs",
-        "Assets/Game/Mods/Climates & Cloaks/FillingFood.cs",
-        "Assets/Game/Mods/Climates & Cloaks/modsettings.json",
         "Assets/Game/Mods/Climates & Cloaks/ItemTemplates.json",
         "Assets/Game/Mods/Climates & Cloaks/Textures/532_0-0.PNG",
         "Assets/Game/Mods/Climates & Cloaks/Textures/532_1-0.PNG",

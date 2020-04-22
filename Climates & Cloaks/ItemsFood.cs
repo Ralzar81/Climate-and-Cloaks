@@ -86,13 +86,15 @@ namespace ClimatesCloaks
             }
         }
 
-        public void RotFood()
+        public bool RotFood()
         {
             if (FoodStatus < StatusPutrid)
             {
                 FoodStatus++;
                 shortName = GetFoodStatus() + ItemTemplate.name;
+                return false;
             }
+            return true;
         }
 
         public override bool UseItem(ItemCollection collection)
@@ -102,23 +104,24 @@ namespace ClimatesCloaks
             uint hunger = gameMinutes - playerEntity.LastTimePlayerAteOrDrankAtTavern;
             uint cals = GetCalories() / ((uint)FoodStatus + 1);
 
-            if (FoodStatus > 3)
+            if (FoodStatus == StatusPutrid)
             {
-                DaggerfallUI.MessageBox(string.Format("This {0}{1} is too disgusting to force down.", GetFoodStatus(), ItemTemplate.name));
+                DaggerfallUI.MessageBox(string.Format("This {0} is too disgusting to force down.", shortName));
             }
             else if (hunger >= cals)
             {
                 if (hunger > cals + 240)
+                {
                     playerEntity.LastTimePlayerAteOrDrankAtTavern = gameMinutes - 240;
-                else
-                    playerEntity.LastTimePlayerAteOrDrankAtTavern += cals;
+                }
+                playerEntity.LastTimePlayerAteOrDrankAtTavern += cals;
 
                 collection.RemoveItem(this);
-                DaggerfallUI.MessageBox(string.Format("You eat the {0}{1}.", GetFoodStatus(), ItemTemplate.name));
+                DaggerfallUI.MessageBox(string.Format("You eat the {0}.", shortName));
             }
             else
             {
-                DaggerfallUI.MessageBox(string.Format("You are not hungry enough to eat the {0}{1} right now.", GetFoodStatus(), ItemTemplate.name));
+                DaggerfallUI.MessageBox(string.Format("You are not hungry enough to eat the {0} right now.", shortName));
             }
             return true;
         }

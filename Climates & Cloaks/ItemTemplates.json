@@ -7,7 +7,7 @@
         "index": 530,
         "name": "Camping Equipment",
         "baseWeight": 5.0,
-        "hitPoints": 50,
+        "hitPoints": 100,
         "capacityOrTarget": 0,
         "basePrice": 13,
         "enchantmentPoints": 0,

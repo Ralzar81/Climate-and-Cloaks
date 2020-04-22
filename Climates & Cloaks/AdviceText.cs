@@ -30,7 +30,7 @@ namespace ClimatesCloaks
         static private int totalTemp = ClimateCloaks.totalTemp;
         static private bool cloak = ClimateCloaks.cloak;
         static private bool hood = ClimateCloaks.hood;
-        static private bool drink = ClimateCloaks.drink;
+        static private bool drink = ClimateCloaks.gotDrink;
         static private uint hunger = FillingFood.hunger;
         static private bool starving = FillingFood.starving;
         static private bool rations = FillingFood.rations;
@@ -45,7 +45,7 @@ namespace ClimatesCloaks
             totalTemp = ClimateCloaks.totalTemp;
             cloak = ClimateCloaks.cloak;
             hood = ClimateCloaks.hood;
-            drink = ClimateCloaks.drink;
+            drink = ClimateCloaks.gotDrink;
             hunger = FillingFood.hunger;
             starving = FillingFood.starving;
             rations = FillingFood.rations;
@@ -493,11 +493,11 @@ namespace ClimatesCloaks
             }
             else if (hunger < 240)
             {
-                foodString = "You feel you might get hungry again soon.";
+                foodString = "You might get hungry again soon.";
             }
             else if (starving)
             {
-                foodString = "The lack of food is making you weaker each day.";
+                foodString = string.Format("You have not eaten in {0} days. You are getting weaker.", FillingFood.starvation.ToString());
             }
             return foodString;
         }
