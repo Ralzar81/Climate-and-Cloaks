@@ -497,7 +497,14 @@ namespace ClimatesCloaks
             }
             else if (starving)
             {
-                foodString = string.Format("You have not eaten in {0} days. You are getting weaker.", FillingFood.starvation.ToString());
+                if (FillingFood.starvDays > 7)
+                {
+                    foodString = string.Format("You have not eaten properly in over a week.");
+                }
+                else
+                {
+                    foodString = string.Format("You have not eaten properly in {0} days. You are getting weaker.", FillingFood.starvDays.ToString());
+                }
             }
             return foodString;
         }

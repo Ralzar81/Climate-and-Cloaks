@@ -64,7 +64,7 @@ namespace ClimatesCloaks
             {
                 WetCount = wetCount,
                 AttCount = attCount,
-                Starvation = FillingFood.starvation,
+                Starvation = FillingFood.starvDays,
                 Hungry = FillingFood.hungry,
             };
         }
@@ -74,7 +74,7 @@ namespace ClimatesCloaks
             var climateCloaksSaveData = (ClimateCloaksSaveData)saveData;
             wetCount = climateCloaksSaveData.WetCount;
             attCount = climateCloaksSaveData.AttCount;
-            FillingFood.starvation = climateCloaksSaveData.Starvation;
+            FillingFood.starvDays = climateCloaksSaveData.Starvation;
             FillingFood.hungry = climateCloaksSaveData.Hungry;
         }
 
@@ -89,6 +89,7 @@ namespace ClimatesCloaks
         static bool clothDmg = true;
         static bool toggleKeyStatus = true;
         static bool encumbranceRPR = false;
+        static bool tediousTravel = false;
 
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
@@ -102,16 +103,15 @@ namespace ClimatesCloaks
             StartGameBehaviour.OnStartGame += ClimatesCloaks_OnStartGame;
             EntityEffectBroker.OnNewMagicRound += TemperatureEffects_OnNewMagicRound;
             EntityEffectBroker.OnNewMagicRound += FillingFood.FoodRot_OnNewMagicRound;
-            EntityEffectBroker.OnNewMagicRound += Hunting.Hunting_OnNewMagicRound;
 
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
 
             itemHelper.RegisterCustomItem(ItemApple.templateIndex, ItemGroups.UselessItems2, typeof(ItemApple));
             itemHelper.RegisterCustomItem(ItemApple.templateIndex, ItemGroups.UselessItems2, typeof(ItemOrange));
-            itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemBread));
-            itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemFish));
-            itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemSaltedFish));
-            itemHelper.RegisterCustomItem(ItemMeat.templateIndex, ItemGroups.UselessItems2, typeof(ItemMeat));
+            //itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemBread));
+            //itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemFish));
+            //itemHelper.RegisterCustomItem(ItemBread.templateIndex, ItemGroups.UselessItems2, typeof(ItemSaltedFish));
+            //itemHelper.RegisterCustomItem(ItemMeat.templateIndex, ItemGroups.UselessItems2, typeof(ItemMeat));
 
             DaggerfallUnity.Instance.ItemHelper.RegisterItemUseHandler(templateIndex_CampEquip, UseCampingEquipment);
             DaggerfallUnity.Instance.ItemHelper.RegisterCustomItem(templateIndex_CampEquip, ItemGroups.UselessItems2);
@@ -241,6 +241,7 @@ namespace ClimatesCloaks
         static private KeyCode restKey = InputManager.Instance.GetBinding(InputManager.Actions.Rest);
         static private bool lookingUp = false;
         bool statusClosed = true;
+        static int travelCounter = 0;
 
         void Start()
         {
@@ -258,22 +259,26 @@ namespace ClimatesCloaks
                 return;
 
             FillingFood.gameMinutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
-            FillingFood.ateTime = GameManager.Instance.PlayerEntity.LastTimePlayerAteOrDrankAtTavern;
+            FillingFood.ateTime = playerEntity.LastTimePlayerAteOrDrankAtTavern;
             FillingFood.hunger = FillingFood.gameMinutes - FillingFood.ateTime;
             if (FillingFood.hunger <= 240 && FillingFood.hungry)
             {
                 FillingFood.hungry = false;
                 FillingFood.starving = false;
-                FillingFood.starvation = 0;
+                FillingFood.starvDays = 0;
                 EntityEffectBroker.OnNewMagicRound += FillingFood.FoodEffects_OnNewMagicRound;
                 DaggerfallUI.AddHUDText("You feel invigorated by the meal.");
                 Debug.Log("[Filling Food] Registering OnNewMagicRound");
             }
-            if (FillingFood.hunger > 1440 && !FillingFood.starving)
+            else if (FillingFood.hunger > 1440 && !FillingFood.starving)
             {
+                FillingFood.starvDays = (FillingFood.hunger / 1440);
                 FillingFood.starving = true;
                 DaggerfallUI.AddHUDText("You are starving...");
-                EntityEffectBroker.OnNewMagicRound += FillingFood.Starvation_OnNewMagicRound;
+            }
+            else if (FillingFood.hunger < 1440)
+            {
+                FillingFood.starving = false;
             }
             //Waiting for mod access to rest function.
             // Interrupt rest if too cold or warm.
@@ -415,20 +420,32 @@ namespace ClimatesCloaks
                     txtCount = txtIntervals;
                     wetCount = Mathf.Max(wetCount - 2, 0);
                     attCount = Mathf.Max(attCount - 2, 0);
+                    FillingFood.Starvation();
                     Debug.Log("[Climates & Cloaks] Camp or Inside Round");
                 }
                 //When fast traveling counters resets.
                 else if (DaggerfallUI.Instance.FadeBehaviour.FadeInProgress && GameManager.Instance.IsPlayerOnHUD)
                 {
-                    txtCount = txtIntervals;
-                    wetCount = 0;
-                    attCount = 0;
+                    if (travelCounter <= 5)
+                    {
+                        travelCounter++;
+                    }
+                    else if (travelCounter > 5)
+                    {
+                        txtCount = txtIntervals;
+                        wetCount = 0;
+                        attCount = 0;
+                        playerEntity.LastTimePlayerAteOrDrankAtTavern = FillingFood.gameMinutes - 250;
+                    }
+
                     Debug.Log("[Climates & Cloaks] Fast Travel Round");
                 }
                 //If not camping, bed sleeping or traveling, apply normal C&C effects.
                 else
                 {
                     Debug.Log("[Climates & Cloaks] Active Round START");
+
+                    travelCounter = 0;
 
                     //Code specifically to mess with FuzzyBean. Anyone else reading this: ignore it and don't tell Fuzzy ;)
                     if (playerEntity.Name == "Daddy Azura" && playerEnterExit.IsPlayerInsideDungeon && cloakly && !GameManager.Instance.AreEnemiesNearby())
@@ -442,8 +459,13 @@ namespace ClimatesCloaks
                         }
                     }
 
+
+                    FillingFood.Starvation();
+                    Hunting.HuntingRound();
+
                     playerIsWading = GameManager.Instance.PlayerMotor.OnExteriorWater == PlayerMotor.OnExteriorWaterMethod.Swimming;
                     int fatigueDmg = 0;
+                    int debuffValue = 0;
                     camping = false;
 
                     TemperatureCalculator();
@@ -553,9 +575,22 @@ namespace ClimatesCloaks
                     Debug.Log("[Climates & Cloaks] fatigueDmg applied = " + fatigueDmg.ToString());
                     playerEntity.DecreaseFatigue(fatigueDmg, true);
 
-                    int starvation = (int)FillingFood.starvation * 5;
+                    debuffValue = (int)FillingFood.starvDays * 2;
 
-                    DebuffAtt(absTemp + starvation);
+                    if (attCount > 0)
+                    {
+                        int countOrTemp = Mathf.Min(absTemp - 30, attCount);
+                        int tempAttDebuff = Mathf.Max(0, countOrTemp);
+                        if (playerEntity.RaceTemplate.ID == (int)Races.Argonian)
+                        {
+                            if (absTemp > 50) { tempAttDebuff *= 2; }
+                            else { tempAttDebuff /= 2; }
+                        }
+                        debuffValue += tempAttDebuff;
+                    }
+
+
+                    DebuffAtt(debuffValue);
                     
                     Debug.Log("[Climates & Cloaks] Active Round END.");
                 }
@@ -1705,19 +1740,19 @@ namespace ClimatesCloaks
             return temp;
         }
 
-        static void DebuffAtt(int absTemp)
+        static void DebuffAtt(int debuffValue)
         {
-            if (absTemp < 30)
-            {
-                absTemp = 0;
-            }
-            int countOrTemp = Mathf.Min(absTemp - 30, attCount);
-            int tempAttDebuff = Mathf.Max(0, countOrTemp);
-            if (playerEntity.RaceTemplate.ID == (int)Races.Argonian)
-            {
-                if (absTemp > 50) { tempAttDebuff *= 2; }
-                else { tempAttDebuff /= 2; }
-            }
+            //if (absTemp < 30)
+            //{
+            //    absTemp = 0;
+            //}
+            //int countOrTemp = Mathf.Min(absTemp - 30, attCount);
+            //int tempAttDebuff = Mathf.Max(0, countOrTemp);
+            //if (playerEntity.RaceTemplate.ID == (int)Races.Argonian)
+            //{
+            //    if (absTemp > 50) { tempAttDebuff *= 2; }
+            //    else { tempAttDebuff /= 2; }
+            //}
             int currentEn = playerEntity.Stats.PermanentEndurance;
             int currentSt = playerEntity.Stats.PermanentStrength;
             int currentAg = playerEntity.Stats.PermanentAgility;
@@ -1726,15 +1761,15 @@ namespace ClimatesCloaks
             int currentPer = playerEntity.Stats.PermanentPersonality;
             int currentSpd = playerEntity.Stats.PermanentSpeed;
             int[] statMods = new int[DaggerfallStats.Count];
-            statMods[(int)DFCareer.Stats.Endurance] = -Mathf.Min(tempAttDebuff, currentEn - 5);
-            statMods[(int)DFCareer.Stats.Strength] = -Mathf.Min(tempAttDebuff, currentSt - 5);
-            statMods[(int)DFCareer.Stats.Agility] = -Mathf.Min(tempAttDebuff, currentAg - 5);
-            statMods[(int)DFCareer.Stats.Intelligence] = -Mathf.Min(tempAttDebuff, currentInt - 5);
-            statMods[(int)DFCareer.Stats.Willpower] = -Mathf.Min(tempAttDebuff, currentWill - 5);
-            statMods[(int)DFCareer.Stats.Personality] = -Mathf.Min(tempAttDebuff, currentPer - 5);
-            statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(tempAttDebuff, currentSpd - 5);
+            statMods[(int)DFCareer.Stats.Endurance] = -Mathf.Min(debuffValue, currentEn - 5);
+            statMods[(int)DFCareer.Stats.Strength] = -Mathf.Min(debuffValue, currentSt - 5);
+            statMods[(int)DFCareer.Stats.Agility] = -Mathf.Min(debuffValue, currentAg - 5);
+            statMods[(int)DFCareer.Stats.Intelligence] = -Mathf.Min(debuffValue, currentInt - 5);
+            statMods[(int)DFCareer.Stats.Willpower] = -Mathf.Min(debuffValue, currentWill - 5);
+            statMods[(int)DFCareer.Stats.Personality] = -Mathf.Min(debuffValue, currentPer - 5);
+            statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(debuffValue, currentSpd - 5);
             playerEffectManager.MergeDirectStatMods(statMods);
-            Debug.Log("[Climates & Cloaks] Temperature Attribute Debuffed " + tempAttDebuff.ToString());
+            Debug.Log("[Climates & Cloaks] Temperature Attribute Debuffed " + debuffValue.ToString());
         }
 
         static private void UpText(int natTemp)
@@ -1906,7 +1941,7 @@ namespace ClimatesCloaks
         static PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
         static public bool hungry = true;
         static public bool starving = false;
-        static public uint starvation = 0;
+        static public uint starvDays = 0;
         static private int starvCounter = 0;
         static public bool rations = RationsToEat();
         static private int foodCount = 0;
@@ -1927,17 +1962,16 @@ namespace ClimatesCloaks
 
 
 
-        static public void Starvation_OnNewMagicRound()
+        static public void Starvation()
         {
-            if (DaggerfallUI.Instance.FadeBehaviour.FadeInProgress && GameManager.Instance.IsPlayerOnHUD)
-            {
-                starving = false;
-            }
-            starvation = (hunger / 1440);
-            starvCounter += (int)starvation;
+            starvDays = (hunger / 1440);
+            starvCounter += (int)starvDays;
             rations = RationsToEat();
-
-            if (!SaveLoadManager.Instance.LoadInProgress && hunger > 240 && starving && rations && starvCounter > 5)
+            if (hunger > 240)
+            {
+                hungry = true;
+            }
+            if (hungry && starving && rations && starvCounter > 5)
             {
                 List<DaggerfallUnityItem> sacks = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, ClimateCloaks.templateIndex_Rations);
                 foreach (DaggerfallUnityItem sack in sacks)
@@ -1957,14 +1991,13 @@ namespace ClimatesCloaks
                     }
                 }
             }
-            else if (!SaveLoadManager.Instance.LoadInProgress && !rations && starving && starvCounter > 5)
+            else if (!rations && starving && starvCounter > 5)
             {
                 playerEntity.DecreaseFatigue(1);
             }
             else if (!starving)
             {
-                starvation = 0;
-                EntityEffectBroker.OnNewMagicRound -= Starvation_OnNewMagicRound;
+                starvDays = 0;
             }
         }
 
@@ -1982,10 +2015,11 @@ namespace ClimatesCloaks
             return false;
         }
 
-        static private void FoodRot()
+        static private void FoodRot(int days)
         {
+            days *= 10;
             bool rotted = false;
-            int rotChance = UnityEngine.Random.Range(1, 100);
+            int rotChance = UnityEngine.Random.Range(1, 100) + days;
             Debug.Log("[Filling Food] rotChance = " + rotChance.ToString());
             foreach (ItemCollection playerItems in new ItemCollection[] { GameManager.Instance.PlayerEntity.Items, GameManager.Instance.PlayerEntity.WagonItems })
             {
@@ -2006,24 +2040,39 @@ namespace ClimatesCloaks
             }
             if (rotted)
             {
+                daysRot = 0;
                 rotted = false;
                 DaggerfallUI.AddHUDText("Your food is getting a bit ripe...");
             }
         }
 
         private static int rotCounter = 0;
+        private static int fastRotCounter = 0;
+        private static int daysRot = 0;
 
         public static void FoodRot_OnNewMagicRound()
         {
             if (!SaveLoadManager.Instance.LoadInProgress
                 && !GameManager.IsGamePaused)
             {
-                rotCounter++;
-                Debug.Log("[Filling Food] rotCounter = " + rotCounter.ToString());
-                if (rotCounter > 50)
+                if (DaggerfallUI.Instance.FadeBehaviour.FadeInProgress && GameManager.Instance.IsPlayerOnHUD)
                 {
-                    FoodRot();
-                    rotCounter = 0;
+                    fastRotCounter++;
+                    if (fastRotCounter > 720)
+                    {
+                        fastRotCounter = 0;
+                        daysRot++;
+                    }
+                }
+                else
+                {
+                    rotCounter++;
+                    Debug.Log("[Filling Food] rotCounter = " + rotCounter.ToString());
+                    if (rotCounter > 50)
+                    {
+                        FoodRot(daysRot);
+                        rotCounter = 0;
+                    }
                 }
             }
         }
