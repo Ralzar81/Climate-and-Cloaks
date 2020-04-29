@@ -279,6 +279,7 @@ namespace ClimatesCloaks
             else if (FillingFood.hunger < 1440)
             {
                 FillingFood.starving = false;
+                Debug.Log("[Filling Food] starving = false");
             }
             //Waiting for mod access to rest function.
             // Interrupt rest if too cold or warm.
@@ -313,7 +314,6 @@ namespace ClimatesCloaks
                 {
                     // Setup next status info box.
                     TemperatureCalculator();
-                    Debug.Log("[Climates & Cloaks] Status Textbox Calculations Complete");
                     DaggerfallMessageBox newBox = new DaggerfallMessageBox(DaggerfallUI.UIManager, msgBox);
 
                     List<string> messages = new List<string>();
@@ -398,20 +398,11 @@ namespace ClimatesCloaks
             TextPopup(messages);
             EntityEffectBroker.OnNewMagicRound -= Privateer_OnNewMagicRound;
         }
-
-        
-
+       
         private static bool cloakly = true;
 
         private static void TemperatureEffects_OnNewMagicRound()
         {
-            //Debug.Log("[Climates & Cloaks] FadeInProgress " + DaggerfallUI.Instance.FadeBehaviour.FadeInProgress.ToString());
-            //Debug.Log("[Climates & Cloaks] PreventEnemySpawns " + GameManager.Instance.PlayerEntity.PreventEnemySpawns.ToString());
-            //Debug.Log("[Climates & Cloaks] SyntheticTimeIncrease " + GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease.ToString());
-            //Debug.Log("[Climates & Cloaks] IsPlayerInsideBuilding " + playerEnterExit.IsPlayerInsideBuilding.ToString());
-            //Debug.Log("[Climates & Cloaks] camping " + camping.ToString());
-            //Debug.Log("[Climates & Cloaks] IsGamePaused " + GameManager.IsGamePaused.ToString());
-
             if (!SaveLoadManager.Instance.LoadInProgress)
             {
                 //When inside or camping, the counters reset faster and no temp effects are applied.
@@ -421,6 +412,7 @@ namespace ClimatesCloaks
                     wetCount = Mathf.Max(wetCount - 2, 0);
                     attCount = Mathf.Max(attCount - 2, 0);
                     FillingFood.Starvation();
+                    DebuffAtt((int)FillingFood.starvDays * 2);
                     Debug.Log("[Climates & Cloaks] Camp or Inside Round");
                 }
                 //When fast traveling counters resets.
@@ -500,19 +492,16 @@ namespace ClimatesCloaks
                             if (absTemp < 30) { fatigueDmg /= 2; }
                             else { fatigueDmg *= 2; }
                         }
-                        Debug.Log("[Climate & Cloaks] Fatgigue Damage from Temperature added.");
                         //Temperature +/- 30+ and starts debuffing attributes.
                         if (absTemp > 30)
                         {
                             attCount++;
-                            Debug.Log("[Climates & Cloaks] AbsTemp > 30. attCount = " + attCount.ToString());
                         }
                         else { attCount = 0; }
                         //Temperature +/- 50+ and starts causing damage.
                         if (absTemp > 50)
                         {
                             { playerEntity.DecreaseHealth((absTemp - 40) / 10); }
-                            Debug.Log("[Climates & Cloaks] AbsTemp > 50. DecreaseHealth = " + ((absTemp -40) / 10).ToString());
                         }
                     }
 
@@ -520,7 +509,6 @@ namespace ClimatesCloaks
                     if ((baseNatTemp > 10 || baseNatTemp < -10) && clothDmg)
                     {
                         int dmgRoll = UnityEngine.Random.Range(0, 100);
-                        Debug.Log("[Climates & Cloaks] Cloth Damage Roll = " + dmgRoll.ToString());
                         if (dmgRoll <= 2) { ClothDmg(); }
                     }
 
@@ -528,7 +516,6 @@ namespace ClimatesCloaks
                     if (wetCount > 5)
                     {
                         int dmgRoll = UnityEngine.Random.Range(0, 100);
-                        Debug.Log("[Climates & Cloaks] Armor Damage Roll = " + dmgRoll.ToString());
                         if (dmgRoll < 5) { ArmorDmg(); }
                     }
 
@@ -572,7 +559,6 @@ namespace ClimatesCloaks
                         if (!GameManager.IsGamePaused) { DaggerfallUI.AddHUDText("You are exhausted and need to rest..."); }
                     }
 
-                    Debug.Log("[Climates & Cloaks] fatigueDmg applied = " + fatigueDmg.ToString());
                     playerEntity.DecreaseFatigue(fatigueDmg, true);
 
                     debuffValue = (int)FillingFood.starvDays * 2;
@@ -588,8 +574,7 @@ namespace ClimatesCloaks
                         }
                         debuffValue += tempAttDebuff;
                     }
-
-
+                    
                     DebuffAtt(debuffValue);
                     
                     Debug.Log("[Climates & Cloaks] Active Round END.");
@@ -642,10 +627,6 @@ namespace ClimatesCloaks
             List<DaggerfallUnityItem> skins = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, ClimateCloaks.templateIndex_Waterskin);
             foreach (DaggerfallUnityItem skin in skins)
             {
-                if (waterAmount <= 0)
-                {
-                    break;
-                }
                 if (skin.weightInKg < 2)
                 {
                     wLeft = waterAmount - skin.weightInKg;
@@ -663,8 +644,9 @@ namespace ClimatesCloaks
         {
             if (charNatTemp > 9 && gotDrink)
             {
-                charNatTemp -= 10;
-                Debug.Log("[Climates & Cloaks] Drinking water. Temp -10");
+                charNatTemp -= 20;
+                charNatTemp = Mathf.Max(charNatTemp, 0);
+                Debug.Log("[Climates & Cloaks] Drinking water. Temp -20");
             }
             return charNatTemp;
         }
@@ -694,7 +676,6 @@ namespace ClimatesCloaks
             }
             if (temp < 0)
             {
-                Debug.Log("Live Frost Resistance = " + resFrost.ToString());
                 if (playerEntity.RaceTemplate.CriticalWeaknessFlags == DFCareer.EffectFlags.Frost) { resFrost -= 50; }
                 else if (playerEntity.RaceTemplate.LowToleranceFlags == DFCareer.EffectFlags.Frost) { resFrost -= 25; }
                 else if (playerEntity.RaceTemplate.ResistanceFlags == DFCareer.EffectFlags.Frost) { resFrost += 25; }
@@ -703,7 +684,6 @@ namespace ClimatesCloaks
             }
             else
             {
-                Debug.Log("Live Fire Resistance = " + resFire.ToString());
                 if (playerEntity.RaceTemplate.CriticalWeaknessFlags == DFCareer.EffectFlags.Fire) { resFire -= 50; }
                 else if (playerEntity.RaceTemplate.LowToleranceFlags == DFCareer.EffectFlags.Fire) { resFire -= 25; }
                 else if (playerEntity.RaceTemplate.ResistanceFlags == DFCareer.EffectFlags.Fire) { resFire += 25; }
@@ -820,8 +800,6 @@ namespace ClimatesCloaks
             if (aLegs != null) { cBottom = true; }
             if (!cTop || !cBottom)
             {
-                if (!cTop) { Debug.Log("Character is Naked Top"); }
-                if (!cBottom) { Debug.Log("Character is Naked Bottom"); }
                 if (playerEnterExit.IsPlayerInSunlight && natTemp > 10)
                 {
                     if ((playerEntity.RaceTemplate.ID == (int)Races.DarkElf || playerEntity.RaceTemplate.ID == (int)Races.Redguard))
@@ -859,7 +837,6 @@ namespace ClimatesCloaks
                     { DaggerfallUI.AddHUDText("The cold air numbs your bare skin."); }
                 }
             }
-            else { Debug.Log("Character is not Naked"); }
         }
 
         //If bare feet, may take damage from temperatures.
@@ -872,16 +849,13 @@ namespace ClimatesCloaks
                && feetPen)
             {
                 playerEntity.DecreaseHealth(1);
-                Debug.Log("FeetDmg = 1");
                 if (natTemp > 0 && txtCount >= txtIntervals)
                 {
                     DaggerfallUI.AddHUDText("Your bare feet are getting burned.");
-                    Debug.Log("Feet are naked and burned.");
                 }
                 else if (txtCount >= txtIntervals)
                 {
                     DaggerfallUI.AddHUDText("Your bare feet are freezing.");
-                    Debug.Log("Feet are naked and freezing.");
                 }
             }
         }
@@ -975,7 +949,6 @@ namespace ClimatesCloaks
                         else
                         { wetWeather = 3; }
                     }
-                    Debug.Log("[Climates & Cloaks] isRaining wetWeather = " + wetWeather.ToString());
                 }
                 else if (isStorming)
                 {
@@ -993,7 +966,6 @@ namespace ClimatesCloaks
                         else
                         { wetWeather = 5; }
                     }
-                    Debug.Log("[Climates & Cloaks] isStorming wetWeather = " + wetWeather.ToString());
                 }
                 else if (isSnowing)
                 {
@@ -1011,7 +983,6 @@ namespace ClimatesCloaks
                         else
                         { wetWeather = 2; }
                     }
-                    Debug.Log("[Climates & Cloaks] isSnowing wetWeather = " + wetWeather.ToString());
                 }
                 else if (isOvercast)
                 {
@@ -1235,7 +1206,6 @@ namespace ClimatesCloaks
             if (cloth != null)
             {
                 cloth.LowerCondition(1, playerEntity);
-                Debug.Log("Cloth Damage = " + cloth.ItemName.ToString());
                 if (GameManager.Instance.TransportManager.TransportMode == TransportModes.Foot && feetCloth != null)
                 {
                     feetCloth.LowerCondition(1, playerEntity);
@@ -1248,10 +1218,6 @@ namespace ClimatesCloaks
                 {
                     DaggerfallUI.AddHUDText("Your " + cloth.ItemName.ToString() + " is getting worn out...");
                 }
-            }
-            else
-            {
-                Debug.Log("Cloth Damage = Cloth is NULL");
             }
 
             switch (lRoll)
@@ -1282,15 +1248,10 @@ namespace ClimatesCloaks
                 if (Leather(lArmor))
                 {
                     lArmor.LowerCondition(1, playerEntity);
-                    Debug.Log("Leather Armor Damage = " + lArmor.ToString());
                     if (lArmor.currentCondition < (cloth.maxCondition / 10))
                     {
                         DaggerfallUI.AddHUDText("Your " + lArmor.ItemName.ToString() + " is getting worn out...");
                     }
-                }
-                else
-                {
-                    Debug.Log("Leather Armor Damage = Armorpiece is not Leather. No damage.");
                 }
             }
         }
@@ -1329,22 +1290,16 @@ namespace ClimatesCloaks
                         break;
                 }
 
-
             if (armor != null)
             {
                 if (!Leather(armor))
                 {
                     int armorDmg = Mathf.Max(armor.maxCondition / 100, 1);
                     armor.LowerCondition(armorDmg, playerEntity);
-                    Debug.Log("Armor Damage = " + armor.ToString());
                     if (armor.currentCondition < (armor.maxCondition / 10))
                     {
                         DaggerfallUI.AddHUDText("Your " + armor.ItemName.ToString() + " is getting rusty...");
                     }
-                }
-                else
-                {
-                    Debug.Log("Armor Damage = Armorpiece is Leather. No damage.");
                 }
             }
 
@@ -1735,7 +1690,6 @@ namespace ClimatesCloaks
                 if (wetCount > 300) { wetCount = 300; }
                 temp = (wetCount / 10);
                 Debug.Log("[Climates & Cloaks] wetCount " + wetCount.ToString());
-                Debug.Log("[Climates & Cloaks] Water Temp " + temp.ToString());
             }
             return temp;
         }
@@ -1769,7 +1723,7 @@ namespace ClimatesCloaks
             statMods[(int)DFCareer.Stats.Personality] = -Mathf.Min(debuffValue, currentPer - 5);
             statMods[(int)DFCareer.Stats.Speed] = -Mathf.Min(debuffValue, currentSpd - 5);
             playerEffectManager.MergeDirectStatMods(statMods);
-            Debug.Log("[Climates & Cloaks] Temperature Attribute Debuffed " + debuffValue.ToString());
+            Debug.Log("[Climates & Cloaks] Attribute Debuffed " + debuffValue.ToString());
         }
 
         static private void UpText(int natTemp)
@@ -1903,17 +1857,6 @@ namespace ClimatesCloaks
 
     public class FillingFood
     {
-
-        //static Mod mod;
-
-        //[Invoke(StateManager.StateTypes.Game, 0)]
-        //public static void Init(InitParams initParams)
-        //{
-        //    mod = initParams.Mod;
-        //    var go = new GameObject(mod.Title);
-        //    go.AddComponent<FillingFood>();
-        //}
-
         DaggerfallUnity dfUnity;
         PlayerEnterExit playerEnterExit;
 
@@ -1927,16 +1870,6 @@ namespace ClimatesCloaks
         static float postTextInterval = 60f;
         static int textDisplayTime = 3;
 
-
-        //Hunting code WIP
-
-
-        //void Awake()
-        //{
-        //    mod.IsReady = true;
-        //    Debug.Log("[FillingFood Food] Mod Is Ready");
-        //}
-
         //Hunting Quest test
         static PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
         static public bool hungry = true;
@@ -1949,8 +1882,6 @@ namespace ClimatesCloaks
         static public uint ateTime = GameManager.Instance.PlayerEntity.LastTimePlayerAteOrDrankAtTavern;
         static public uint hunger = gameMinutes - ateTime;
 
-
-
         private static void GiveMeat(int meatAmount)
         {
             for (int i = 0; i < meatAmount; i++)
@@ -1958,9 +1889,6 @@ namespace ClimatesCloaks
                 GameManager.Instance.PlayerEntity.Items.AddItem(ItemBuilder.CreateItem(ItemGroups.UselessItems2, ItemMeat.templateIndex));
             }
         }
-
-
-
 
         static public void Starvation()
         {
@@ -2008,7 +1936,7 @@ namespace ClimatesCloaks
             {
                 if (sack.weightInKg > 0.1)
                 {
-                    Debug.Log("[Climates & Cloaks] WaterToDrink = true");
+                    Debug.Log("[Filling Food] RationsToEat = true");
                     return true;
                 }
             }
@@ -2020,7 +1948,6 @@ namespace ClimatesCloaks
             days *= 10;
             bool rotted = false;
             int rotChance = UnityEngine.Random.Range(1, 100) + days;
-            Debug.Log("[Filling Food] rotChance = " + rotChance.ToString());
             foreach (ItemCollection playerItems in new ItemCollection[] { GameManager.Instance.PlayerEntity.Items, GameManager.Instance.PlayerEntity.WagonItems })
             {
                 for (int i = 0; i < playerItems.Count; i++)
